@@ -20,7 +20,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/jo
     }
 
     const { count, error: countError } = await db()
-      .from("xo_players")
+      .from("xand0_players")
       .select("id", { count: "exact", head: true })
       .eq("room_id", room.id);
     if (countError) throw countError;
@@ -28,7 +28,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/jo
 
     const token = newPlayerToken();
     const { data, error } = await db()
-      .from("xo_players")
+      .from("xand0_players")
       .insert({ room_id: room.id, nickname, token_hash: hashToken(token) })
       .select("id")
       .single();

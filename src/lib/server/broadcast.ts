@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "./db";
 
-export const roomTopic = (roomId: string) => `xo:${roomId}`;
+export const roomTopic = (roomId: string) => `xand0:${roomId}`;
 
 /**
  * Tells every client in the room that state changed. Payload carries no game data:

@@ -87,7 +87,7 @@ function useRoomState(code: string, token: string) {
     const client = realtimeClient();
     if (!roomId || !client) return;
     const channel = client
-      .channel(`xo:${roomId}`)
+      .channel(`xand0:${roomId}`)
       .on("broadcast", { event: "refresh" }, () => void refresh())
       .subscribe((status) => {
         if (status === "SUBSCRIBED") void refresh(); // catch anything missed while connecting

@@ -11,12 +11,12 @@
   It is shown next to "Setări".
 
 ## Database (same Supabase project as Bingo, `vgpcagpqbeiqplfidmwo`)
-Tables are prefixed `xo_`, the Realtime topic is `xo:<roomId>`, so nothing collides with Bingo.
+Tables are prefixed `xand0_`, the Realtime topic is `xand0:<roomId>`, so nothing collides with Bingo.
 Migrations are run by hand in the Supabase SQL editor. **Update this table whenever the user confirms one ran.**
 
 | Migration | Applied to the live DB | Notes |
 | --- | --- | --- |
-| `supabase/schema.sql` (initial) | no (pending) | `xo_rooms`, `xo_players` |
+| `supabase/schema.sql` (initial) | no (pending) | `xand0_rooms`, `xand0_players` |
 
 Rules: new migration = new numbered file in `supabase/migrations/`, additive when possible, also folded into
 `supabase/schema.sql`. Verify by effect with the service key from `.env.local`. Never print or commit the keys.

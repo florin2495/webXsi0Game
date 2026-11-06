@@ -28,8 +28,8 @@ Next.js 16 (App Router), Supabase (Postgres + Realtime Broadcast), deploy pe Ver
 ## Arhitectură, pe scurt
 
 - Toată logica rulează în Route Handlers (`src/app/api/rooms/...`) cu **service role key**, doar pe server.
-- Tabelele (`xo_rooms`, `xo_players`) au **RLS activat și nicio policy**, plus `revoke` pentru `anon`/`authenticated`.
-- Live: după fiecare modificare, serverul trimite un semnal **Supabase Realtime Broadcast** pe topicul `xo:<uuid>`.
+- Tabelele (`xand0_rooms`, `xand0_players`) au **RLS activat și nicio policy**, plus `revoke` pentru `anon`/`authenticated`.
+- Live: după fiecare modificare, serverul trimite un semnal **Supabase Realtime Broadcast** pe topicul `xand0:<uuid>`.
   Clientul face refetch la `/api/rooms/<cod>/state`. Polling la 15 s ca rezervă.
 - Mutările sunt protejate de o coloană `version`: din două mutări simultane trece doar una.
 
@@ -39,7 +39,7 @@ Detalii: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Schema: [supabase/schema.
 
 ### 1. Supabase
 
-Jocul folosește **același proiect Supabase ca Bingo**. Tabelele au prefixul `xo_`, deci nu se ating de Bingo.
+Jocul folosește **același proiect Supabase ca Bingo**. Tabelele au prefixul `xand0_`, deci nu se ating de Bingo.
 
 1. **SQL Editor → New query**: lipește tot conținutul din `supabase/schema.sql` și rulează.
 2. Cheile sunt aceleași ca la Bingo (vezi `.env.example`).

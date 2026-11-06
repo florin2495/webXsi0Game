@@ -22,20 +22,20 @@ export function normalizeCode(code: string): string {
 }
 
 export async function getRoomByCode(code: string): Promise<RoomRow> {
-  const { data, error } = await db().from("xo_rooms").select(ROOM_COLUMNS).eq("code", normalizeCode(code)).maybeSingle();
+  const { data, error } = await db().from("xand0_rooms").select(ROOM_COLUMNS).eq("code", normalizeCode(code)).maybeSingle();
   if (error) throw error;
   if (!data) fail(404, GONE);
   const room = data as RoomRow;
   // Lazy expiry: Vercel Hobby has no frequent cron, so idle rooms are closed when touched.
   if (isRoomExpired(room.status, room.last_activity_at)) {
-    await db().from("xo_rooms").delete().eq("id", room.id).eq("last_activity_at", room.last_activity_at);
+    await db().from("xand0_rooms").delete().eq("id", room.id).eq("last_activity_at", room.last_activity_at);
     fail(404, GONE);
   }
   return room;
 }
 
 async function getRoomById(id: string): Promise<RoomRow | null> {
-  const { data, error } = await db().from("xo_rooms").select(ROOM_COLUMNS).eq("id", id).maybeSingle();
+  const { data, error } = await db().from("xand0_rooms").select(ROOM_COLUMNS).eq("id", id).maybeSingle();
   if (error) throw error;
   return (data as RoomRow | null) ?? null;
 }
@@ -44,8 +44,8 @@ async function getRoomById(id: string): Promise<RoomRow | null> {
 export async function cleanupExpiredRooms(): Promise<void> {
   const cutoff = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
   const [idle, stale] = await Promise.all([
-    db().from("xo_rooms").delete().in("status", ["waiting", "finished"]).lt("last_activity_at", cutoff(ROOM_IDLE_MINUTES)),
-    db().from("xo_rooms").delete().eq("status", "playing").lt("last_activity_at", cutoff(PLAYING_IDLE_MINUTES)),
+    db().from("xand0_rooms").delete().in("status", ["waiting", "finished"]).lt("last_activity_at", cutoff(ROOM_IDLE_MINUTES)),
+    db().from("xand0_rooms").delete().eq("status", "playing").lt("last_activity_at", cutoff(PLAYING_IDLE_MINUTES)),
   ]);
   if (idle.error) console.error("cleanup failed", idle.error);
   if (stale.error) console.error("cleanup failed", stale.error);
@@ -53,7 +53,7 @@ export async function cleanupExpiredRooms(): Promise<void> {
 
 /** Records activity on a room, restarting its idle timer. */
 export async function touchRoom(roomId: string): Promise<void> {
-  const { error } = await db().from("xo_rooms").update({ last_activity_at: new Date().toISOString() }).eq("id", roomId);
+  const { error } = await db().from("xand0_rooms").update({ last_activity_at: new Date().toISOString() }).eq("id", roomId);
   if (error) throw error;
 }
 
@@ -66,7 +66,7 @@ export async function requireMember(req: Request, code: string): Promise<{ room:
   if (!token || token.length > 200) fail(401, "Nu ești în această cameră.");
   const room = await getRoomByCode(code);
   const { data, error } = await db()
-    .from("xo_players")
+    .from("xand0_players")
     .select(PLAYER_COLUMNS)
     .eq("token_hash", hashToken(token))
     .eq("room_id", room.id)
@@ -99,7 +99,7 @@ export function roleOf(room: RoomRow, playerId: string): Role {
 
 export async function listPlayers(roomId: string): Promise<PlayerRow[]> {
   const { data, error } = await db()
-    .from("xo_players")
+    .from("xand0_players")
     .select(PLAYER_COLUMNS)
     .eq("room_id", roomId)
     .order("joined_at", { ascending: true });
@@ -110,11 +110,11 @@ export async function listPlayers(roomId: string): Promise<PlayerRow[]> {
 /** Adds 1 to a player's win count (only one request can finish a round, see the move route). */
 export async function addWin(playerId: string | null): Promise<void> {
   if (!playerId) return;
-  const { data, error } = await db().from("xo_players").select("wins").eq("id", playerId).maybeSingle();
+  const { data, error } = await db().from("xand0_players").select("wins").eq("id", playerId).maybeSingle();
   if (error) throw error;
   if (!data) return;
   const { error: updateError } = await db()
-    .from("xo_players")
+    .from("xand0_players")
     .update({ wins: (data.wins as number) + 1 })
     .eq("id", playerId);
   if (updateError) throw updateError;
@@ -145,7 +145,7 @@ export async function settleSeats(roomId: string): Promise<void> {
     if (start) Object.assign(update, { status: "playing", board: EMPTY_BOARD, winner: null, win_line: null, forfeit: false });
 
     const { data, error } = await db()
-      .from("xo_rooms")
+      .from("xand0_rooms")
       .update(update)
       .eq("id", roomId)
       .eq("version", room.version)

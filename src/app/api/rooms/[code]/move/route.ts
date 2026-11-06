@@ -33,7 +33,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/mo
 
     // Version check: of two concurrent moves only one can win; the other gets a clean 409.
     const { data, error } = await db()
-      .from("xo_rooms")
+      .from("xand0_rooms")
       .update(update)
       .eq("id", room.id)
       .eq("version", room.version)

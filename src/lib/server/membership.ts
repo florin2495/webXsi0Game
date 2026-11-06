@@ -16,7 +16,7 @@ export async function removePlayer(room: RoomRow, playerId: string, reason: stri
   const remaining = (await listPlayers(room.id)).filter((p) => p.id !== playerId);
 
   if (remaining.length === 0) {
-    const { error } = await db().from("xo_rooms").delete().eq("id", room.id);
+    const { error } = await db().from("xand0_rooms").delete().eq("id", room.id);
     if (error) throw error;
     return { roomClosed: true };
   }
@@ -41,16 +41,16 @@ export async function removePlayer(room: RoomRow, playerId: string, reason: stri
   }
 
   // Update the room first so the host / seats never point at a deleted player.
-  const { error: roomError } = await db().from("xo_rooms").update(update).eq("id", room.id);
+  const { error: roomError } = await db().from("xand0_rooms").update(update).eq("id", room.id);
   if (roomError) throw roomError;
   await addWin(forfeitWinnerId);
 
   if (newHostId && newHostId !== room.host_player_id) {
-    const { error } = await db().from("xo_players").update({ is_host: true }).eq("id", newHostId);
+    const { error } = await db().from("xand0_players").update({ is_host: true }).eq("id", newHostId);
     if (error) throw error;
   }
 
-  const { error: deleteError } = await db().from("xo_players").delete().eq("id", playerId);
+  const { error: deleteError } = await db().from("xand0_players").delete().eq("id", playerId);
   if (deleteError) throw deleteError;
 
   if (room.status === "waiting") await settleSeats(room.id);

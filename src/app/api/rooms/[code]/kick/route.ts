@@ -17,7 +17,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/ki
     if (targetId === player.id) fail(400, "Nu te poți scoate singur. Folosește „Părăsește camera”.");
 
     const { data: target, error } = await db()
-      .from("xo_players")
+      .from("xand0_players")
       .select("id")
       .eq("id", targetId)
       .eq("room_id", room.id)

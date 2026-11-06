@@ -20,7 +20,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/ne
     const now = new Date().toISOString();
 
     const { data, error } = await db()
-      .from("xo_rooms")
+      .from("xand0_rooms")
       .update({
         status: seats.x && seats.o ? "playing" : "waiting",
         round: room.round + 1,

@@ -12,14 +12,14 @@ export async function GET() {
   return handle(async () => {
     await cleanupExpiredRooms();
     const { data, error } = await db()
-      .from("xo_rooms")
-      .select("code, name, status, password_hash, x_player_id, o_player_id, last_activity_at, xo_players!xo_players_room_id_fkey(count)")
+      .from("xand0_rooms")
+      .select("code, name, status, password_hash, x_player_id, o_player_id, last_activity_at, xand0_players!xand0_players_room_id_fkey(count)")
       .order("last_activity_at", { ascending: false })
       .limit(50);
     if (error) throw error;
     const rooms: RoomListItem[] = (data ?? [])
       .map((r) => {
-        const members = (r.xo_players as unknown as { count: number }[])[0]?.count ?? 0;
+        const members = (r.xand0_players as unknown as { count: number }[])[0]?.count ?? 0;
         return {
           code: r.code as string,
           name: r.name as string,
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     let room: { id: string; code: string } | null = null;
     for (let attempt = 0; attempt < 5 && !room; attempt++) {
       const { data, error } = await db()
-        .from("xo_rooms")
+        .from("xand0_rooms")
         .insert({ code: newRoomCode(), name, password_hash: passwordHash })
         .select("id, code")
         .single();
@@ -62,14 +62,14 @@ export async function POST(req: Request) {
 
     const token = newPlayerToken();
     const { data: player, error: playerError } = await db()
-      .from("xo_players")
+      .from("xand0_players")
       .insert({ room_id: room.id, nickname, token_hash: hashToken(token), is_host: true })
       .select("id")
       .single();
     if (playerError) throw playerError;
 
     const { error: hostError } = await db()
-      .from("xo_rooms")
+      .from("xand0_rooms")
       .update({ host_player_id: player.id, x_player_id: player.id })
       .eq("id", room.id);
     if (hostError) throw hostError;
