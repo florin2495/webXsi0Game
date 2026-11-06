@@ -16,6 +16,7 @@ import { PREF_NICKNAME, useStringPref, writePref } from "@/lib/client/prefs";
 import { realtimeClient } from "@/lib/client/realtime";
 import { minutesLabel, NICKNAME_MAX, ROOM_IDLE_MINUTES } from "@/lib/game";
 import type { RoomState } from "@/lib/types";
+import { FeedbackButton } from "./FeedbackButton";
 import { Game } from "./Game";
 import { SettingsPanel } from "./SettingsPanel";
 import { Button, Card, ErrorText, Field } from "./ui";
@@ -219,16 +220,19 @@ function RoomHeader({ state }: { state: RoomState }) {
           {state.me.role === "spectator" && " · tu ești spectator"}
         </p>
       </div>
-      <button
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <button
         onClick={() => void invite()}
-        className="shrink-0 rounded-lg border border-zinc-300 px-3 py-1.5 text-center dark:border-zinc-700"
+        className="rounded-lg border border-zinc-300 px-3 py-1.5 text-center dark:border-zinc-700"
         aria-label="Invită prieteni"
       >
         <span className="block font-mono text-lg font-bold tracking-widest">{room.code}</span>
         <span className="block text-[10px] font-semibold uppercase text-zinc-500">
           {copied ? "Link copiat" : "Invită"}
         </span>
-      </button>
+        </button>
+        <FeedbackButton compact />
+      </div>
     </header>
   );
 }

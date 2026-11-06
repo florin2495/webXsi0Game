@@ -21,6 +21,9 @@ Migrations are run by hand in the Supabase SQL editor. **Update this table whene
 Rules: new migration = new numbered file in `supabase/migrations/`, additive when possible, also folded into
 `supabase/schema.sql`. Verify by effect with the service key from `.env.local`. Never print or commit the keys.
 
+Feedback (`POST /api/feedback`) writes to `hub_feedback` (owned by florin2495/hailataticu-hub, slug `tictactoe`);
+this game must not be deployed before that table exists.
+
 ## Testing
 - `npm test` (Vitest, pure rules in `src/lib/game.ts`), `npx tsc --noEmit`, `npx eslint src`, `npx next build`.
 - End-to-end: drive the real API with 4 members (create, join as O, join 2 spectators, a 5th is refused, moves,
