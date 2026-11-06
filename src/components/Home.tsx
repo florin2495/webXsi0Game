@@ -65,6 +65,9 @@ export function Home() {
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
+      <a href="https://hailatat.icu" className="-mb-4 self-start text-xs font-semibold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300">
+        ← Back to haiLaTăt.icu hub
+      </a>
       <header className="text-center">
         <h1 className="text-4xl font-black tracking-tight">
           <span className="text-indigo-600 dark:text-indigo-400">X</span> și{" "}
