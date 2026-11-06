@@ -1,0 +1,70 @@
+import { describe, expect, it } from "vitest";
+import { applyMove, EMPTY_BOARD, fillSeats, isBoard, isRoomExpired, outcome, swapSeats, turnOf } from "./game";
+
+describe("turnOf", () => {
+  it("starts with X and alternates", () => {
+    expect(turnOf(EMPTY_BOARD)).toBe("X");
+    expect(turnOf("X........")).toBe("O");
+    expect(turnOf("XO.......")).toBe("X");
+  });
+});
+
+describe("outcome", () => {
+  it("is null for an open board", () => {
+    expect(outcome(EMPTY_BOARD)).toBeNull();
+    expect(outcome("XO.X.....")).toBeNull();
+  });
+  it("finds rows, columns and diagonals", () => {
+    expect(outcome("XXXOO....")).toEqual({ winner: "X", line: [0, 1, 2] });
+    expect(outcome("OX.OX.O..")).toEqual({ winner: "O", line: [0, 3, 6] });
+    expect(outcome("XO.OX...X")).toEqual({ winner: "X", line: [0, 4, 8] });
+    expect(outcome("XXO.OXO..")).toEqual({ winner: "O", line: [2, 4, 6] });
+  });
+  it("reports a draw on a full board without a line", () => {
+    expect(outcome("XOXXOOOXX")).toEqual({ winner: "draw", line: null });
+  });
+  it("prefers a win over a draw when the last move fills the board", () => {
+    expect(outcome("XOXOXOOXX")?.winner).toBe("X");
+  });
+});
+
+describe("applyMove", () => {
+  it("places the mark of the player on turn", () => {
+    expect(applyMove(EMPTY_BOARD, 4, "X")).toEqual({ ok: true, board: "....X....", mark: "X" });
+  });
+  it("rejects out-of-turn, occupied, invalid and finished", () => {
+    expect(applyMove(EMPTY_BOARD, 0, "O").ok).toBe(false);
+    expect(applyMove("X........", 0, "O").ok).toBe(false);
+    expect(applyMove(EMPTY_BOARD, 9, "X").ok).toBe(false);
+    expect(applyMove(EMPTY_BOARD, 1.5, "X").ok).toBe(false);
+    expect(applyMove("XXXOO....", 8, "O").ok).toBe(false);
+  });
+});
+
+describe("seats", () => {
+  it("fills empty seats from spectators in join order", () => {
+    expect(fillSeats({ x: "a", o: null }, ["a", "b", "c"])).toEqual({ x: "a", o: "b" });
+    expect(fillSeats({ x: null, o: "b" }, ["a", "b", "c"])).toEqual({ x: "a", o: "b" });
+    expect(fillSeats({ x: "gone", o: "b" }, ["b", "c", "d"])).toEqual({ x: "c", o: "b" });
+    expect(fillSeats({ x: null, o: null }, [])).toEqual({ x: null, o: null });
+  });
+  it("swaps marks for the next round", () => {
+    expect(swapSeats({ x: "a", o: "b" })).toEqual({ x: "b", o: "a" });
+  });
+});
+
+describe("misc", () => {
+  it("validates board strings", () => {
+    expect(isBoard(EMPTY_BOARD)).toBe(true);
+    expect(isBoard("XO")).toBe(false);
+    expect(isBoard("XOZ......")).toBe(false);
+  });
+  it("expires idle rooms, with a longer limit while playing", () => {
+    const now = Date.parse("2026-01-01T12:00:00Z");
+    const fiveMinAgo = new Date(now - 5 * 60_000);
+    expect(isRoomExpired("waiting", fiveMinAgo, now)).toBe(true);
+    expect(isRoomExpired("finished", fiveMinAgo, now)).toBe(true);
+    expect(isRoomExpired("playing", fiveMinAgo, now)).toBe(false);
+    expect(isRoomExpired("playing", new Date(now - 31 * 60_000), now)).toBe(true);
+  });
+});
