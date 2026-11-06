@@ -79,14 +79,14 @@ export function PlayerList({ state, token, refresh }: { state: RoomState; token:
 function RoleBadge({ role }: { role: "X" | "O" | "spectator" }) {
   if (role === "spectator") {
     return (
-      <span className="w-14 shrink-0 rounded bg-zinc-100 px-1 text-center text-[10px] font-semibold uppercase text-zinc-500 dark:bg-zinc-900">
+      <span className="w-20 shrink-0 whitespace-nowrap rounded bg-zinc-100 px-1 text-center text-[10px] font-semibold uppercase text-zinc-500 dark:bg-zinc-900">
         👀 privește
       </span>
     );
   }
   return (
     <span
-      className={`w-14 shrink-0 rounded px-1 text-center text-sm font-black ${
+      className={`w-20 shrink-0 rounded px-1 text-center text-sm font-black ${
         role === "X"
           ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
           : "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"

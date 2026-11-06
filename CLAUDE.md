@@ -16,7 +16,7 @@ Migrations are run by hand in the Supabase SQL editor. **Update this table whene
 
 | Migration | Applied to the live DB | Notes |
 | --- | --- | --- |
-| `supabase/schema.sql` (initial) | no (pending) | `xand0_rooms`, `xand0_players` |
+| `supabase/schema.sql` (initial) | yes (2026-11-06, verified: service key reads, anon gets 42501) | `xand0_rooms`, `xand0_players` |
 
 Rules: new migration = new numbered file in `supabase/migrations/`, additive when possible, also folded into
 `supabase/schema.sql`. Verify by effect with the service key from `.env.local`. Never print or commit the keys.
