@@ -61,7 +61,7 @@ npm test                     # testele regulilor de joc
 1. [vercel.com/new](https://vercel.com/new) → **Import** `florin2495/webXsi0Game`.
 2. **Settings → Environment Variables**: cele 3 variabile din `.env.example`, pentru Production (și Preview, dacă vrei).
 3. **Redeploy** după ce adaugi variabilele: `NEXT_PUBLIC_*` intră în bundle la build.
-4. **Settings → Domains → Add Existing** → `xsi0.hailatat.icu`.
+4. **Settings → Domains → Add Existing** → `tictactoe.hailatat.icu`.
 5. Fiecare push pe `main` face deploy automat.
 
 ## Limitări cunoscute
