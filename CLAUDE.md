@@ -9,6 +9,7 @@
 - Every push to `main` deploys to production once Vercel is connected. Ask the user before pushing, unless they say to deploy.
 - **Before every push, bump the patch version** in `package.json` (and `npm install --package-lock-only`).
   It is shown next to "Setări".
+- Functions run in `fra1` (Frankfurt, `vercel.json` `{ "regions": ["fra1"] }`), next to the Supabase DB. Never remove it: the Vercel default `iad1` (Washington) makes every DB query cross the Atlantic (1-2 s per request instead of ~0.3 s).
 
 ## Database (same Supabase project as Bingo, `vgpcagpqbeiqplfidmwo`)
 Tables are prefixed `xand0_`, the Realtime topic is `xand0:<roomId>`, so nothing collides with Bingo.
