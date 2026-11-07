@@ -124,8 +124,6 @@ function FeedbackDialog({ onClose }: { onClose: () => void }) {
             </div>
             <a
               href="/feedback"
-              target="_blank"
-              rel="noopener noreferrer"
               className="text-center text-xs font-semibold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
             >
               Vezi tot feedback-ul →
