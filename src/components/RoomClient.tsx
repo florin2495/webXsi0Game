@@ -232,7 +232,7 @@ function RoomHeader({ state }: { state: RoomState }) {
   const [copied, setCopied] = useState(false);
 
   async function invite() {
-    const url = `${window.location.origin}/room/${room.code}`;
+    const url = `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/room/${room.code}`;
     try {
       if (navigator.share) {
         await navigator.share({ title: `X și 0: ${room.name}`, text: `Intră în camera ${room.code}`, url });

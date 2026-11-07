@@ -129,7 +129,9 @@ export async function api<T = { ok: true }>(
   if (opts.body !== undefined) headers["content-type"] = "application/json";
   let res: Response;
   try {
-    res = await fetch(path, {
+    // basePath is not applied to fetch(); prefix absolute paths ourselves.
+    const url = path.startsWith("/") ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}${path}` : path;
+    res = await fetch(url, {
       method: opts.method ?? (opts.body !== undefined ? "POST" : "GET"),
       headers,
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,

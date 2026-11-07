@@ -5,7 +5,7 @@
 ## Accounts and deploy
 - GitHub: personal account **florin2495** only (repo `florin2495/webXsi0Game`, private). Never the work account.
   Local git identity is pinned in `.git/config`.
-- The user connects the repo to Vercel by hand. Target domain: `tictactoe.hailatat.icu` (listed in the hub, `../000_Startup`).
+- The user connects the repo to Vercel by hand. Served at `games.hailatat.icu/tictactoe` via a multi-zones rewrite in the hub (`../000_Startup`) to `web-xsi0-game.vercel.app/tictactoe`; `basePath` is `/tictactoe`, so client `fetch`/share URLs must add `NEXT_PUBLIC_BASE_PATH`.
 - Every push to `main` deploys to production once Vercel is connected. Ask the user before pushing, unless they say to deploy.
 - **Before every push, bump the patch version** in `package.json` (and `npm install --package-lock-only`).
   It is shown next to "Setări".

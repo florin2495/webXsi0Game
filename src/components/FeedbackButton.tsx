@@ -123,7 +123,7 @@ function FeedbackDialog({ onClose }: { onClose: () => void }) {
               </Button>
             </div>
             <a
-              href="https://hailatat.icu/feedback"
+              href="/feedback"
               target="_blank"
               rel="noopener noreferrer"
               className="text-center text-xs font-semibold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
