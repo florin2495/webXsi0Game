@@ -9,6 +9,7 @@ import {
   turnOf,
 } from "@/lib/game";
 import { kickRemainingMs } from "@/lib/kick";
+import { isConnected, LAST_SEEN_TOUCH_MS } from "@/lib/reconnect";
 import type { PublicPlayer, Role, RoomState } from "@/lib/types";
 import { hashToken } from "./crypto";
 import { db, PLAYER_COLUMNS, ROOM_COLUMNS, type PlayerRow, type RoomRow } from "./db";
@@ -77,7 +78,18 @@ export async function requireMember(req: Request, code: string): Promise<{ room:
     .maybeSingle();
   if (error) throw error;
   if (!data) fail(401, "Nu ești în această cameră.");
-  return { room, player: data as PlayerRow };
+  const player = data as PlayerRow;
+  await touchPlayer(player);
+  return { room, player };
+}
+
+/** Presence heartbeat: stamps last_seen_at at most every LAST_SEEN_TOUCH_MS. Best effort, never throws. */
+async function touchPlayer(player: PlayerRow): Promise<void> {
+  const now = Date.now();
+  if (now - Date.parse(player.last_seen_at) < LAST_SEEN_TOUCH_MS) return;
+  player.last_seen_at = new Date(now).toISOString();
+  const { error } = await db().from("xand0_players").update({ last_seen_at: player.last_seen_at }).eq("id", player.id);
+  if (error) console.error("presence touch failed", error);
 }
 
 export function requireHost(room: RoomRow, player: PlayerRow) {
@@ -182,6 +194,7 @@ export async function buildState(room: RoomRow, me: PlayerRow): Promise<RoomStat
     role: roleOf(room, p.id),
     wins: p.wins,
     kickRemainingMs: kickRemainingMs(p.kick_requested_at, now),
+    connected: isConnected(p.last_seen_at, now),
   });
   const rank = (p: PublicPlayer) => (p.role === "X" ? 0 : p.role === "O" ? 1 : 2);
   // Array.prototype.sort is stable, so spectators keep their join order.

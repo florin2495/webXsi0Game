@@ -11,6 +11,8 @@ export interface PublicPlayer {
   wins: number;
   /** Ms left of a pending kick (host kicked this player mid-round), null when none. */
   kickRemainingMs: number | null;
+  /** Seen in the last 45 s (see lib/reconnect.ts). False = phone in the background, closed tab, no network. */
+  connected: boolean;
 }
 
 /** What GET /api/rooms/[code]/state returns to a member. Nothing in it is secret. */

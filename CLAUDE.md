@@ -19,9 +19,15 @@ Migrations are run by hand in the Supabase SQL editor. **Update this table whene
 | --- | --- | --- |
 | `supabase/schema.sql` (initial) | yes (2026-11-06, verified: service key reads, anon gets 42501) | `xand0_rooms`, `xand0_players` |
 | `supabase/migrations/001_pending_kick.sql` | yes (2026-11-07, verified) | `xand0_players.kick_requested_at timestamptz`; the code reads it everywhere (PLAYER_COLUMNS), so the app errors until it is applied. Run it BEFORE deploying. |
+| `supabase/migrations/002_reconnect.sql` | yes (2026-11-07, verified: service role 200, anon 401) | `xand0_players.last_seen_at`, `device_hash` + index (rejoin the same seat). Read via PLAYER_COLUMNS, so run it BEFORE deploying. |
 
 Rules: new migration = new numbered file in `supabase/migrations/`, additive when possible, also folded into
 `supabase/schema.sql`. Verify by effect with the service key from `.env.local`. Never print or commit the keys.
+
+Rejoin the same seat (`src/lib/reconnect.ts`): every member request stamps `last_seen_at` (≤ every 10 s);
+re-joining with a nickname already in the room reclaims that member (same player id, so same X/O seat or spectator
+place and wins, new token) from the same device (`device_hash`) or once it has been unseen for 45 s, also mid-round.
+`/state` exposes only a derived `connected` flag; never add `token_hash` / `device_hash` to PLAYER_COLUMNS.
 
 Feedback (`POST /api/feedback`) writes to `hub_feedback` (owned by florin2495/hailataticu-hub, slug `tictactoe`);
 this game must not be deployed before that table exists.

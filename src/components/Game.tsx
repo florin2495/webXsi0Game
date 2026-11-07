@@ -6,7 +6,7 @@ import { PREF_SOUND, useBoolPref } from "@/lib/client/prefs";
 import { playEnd, playTurn } from "@/lib/client/sound";
 import type { Mark } from "@/lib/game";
 import type { PublicPlayer, RoomState } from "@/lib/types";
-import { PlayerList } from "./PlayerList";
+import { OfflineBadge, PlayerList } from "./PlayerList";
 import { Button, Card, ErrorText } from "./ui";
 
 /** Internally the marks are "X" / "O"; in Romanian the game is "X și 0". */
@@ -181,6 +181,7 @@ function Scoreboard({
         {p ? p.nickname : <span className="text-zinc-400">liber</span>}
         {p?.id === meId && <span className="font-normal text-zinc-500"> (tu)</span>}
       </span>
+      <OfflineBadge connected={p?.connected} />
       <span className="text-2xl font-black tabular-nums">{p?.wins ?? 0}</span>
     </div>
   );

@@ -61,10 +61,12 @@ describe("misc", () => {
   });
   it("expires idle rooms, with a longer limit while playing", () => {
     const now = Date.parse("2026-01-01T12:00:00Z");
-    const fiveMinAgo = new Date(now - 5 * 60_000);
-    expect(isRoomExpired("waiting", fiveMinAgo, now)).toBe(true);
-    expect(isRoomExpired("finished", fiveMinAgo, now)).toBe(true);
-    expect(isRoomExpired("playing", fiveMinAgo, now)).toBe(false);
+    const nineMinAgo = new Date(now - 9 * 60_000);
+    const elevenMinAgo = new Date(now - 11 * 60_000);
+    expect(isRoomExpired("waiting", nineMinAgo, now)).toBe(false);
+    expect(isRoomExpired("waiting", elevenMinAgo, now)).toBe(true);
+    expect(isRoomExpired("finished", elevenMinAgo, now)).toBe(true);
+    expect(isRoomExpired("playing", elevenMinAgo, now)).toBe(false);
     expect(isRoomExpired("playing", new Date(now - 31 * 60_000), now)).toBe(true);
   });
 });

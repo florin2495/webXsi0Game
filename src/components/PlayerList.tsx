@@ -7,6 +7,16 @@ import type { RoomState } from "@/lib/types";
 import { KickBadge } from "./KickCountdown";
 import { Card, ErrorText } from "./ui";
 
+/** Shown next to a member not seen for 45 s (phone in the background, closed tab, no network). */
+export function OfflineBadge({ connected }: { connected: boolean | undefined }) {
+  if (connected !== false) return null;
+  return (
+    <span className="shrink-0 rounded bg-zinc-200 px-1.5 text-[10px] font-semibold uppercase text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+      deconectat
+    </span>
+  );
+}
+
 /** Everyone in the room with their role. The host gets a "Scoate" (kick) button next to the others. */
 export function PlayerList({ state, token, refresh }: { state: RoomState; token: string; refresh: () => Promise<void> }) {
   const { players, me, room } = state;
@@ -46,6 +56,7 @@ export function PlayerList({ state, token, refresh }: { state: RoomState; token:
                 {p.nickname}
                 {p.id === me.id && <span className="text-zinc-500"> (tu)</span>}
               </span>
+              <OfflineBadge connected={p.connected} />
               {p.kickRemainingMs !== null && p.id !== me.id && <KickBadge ms={p.kickRemainingMs} refresh={refresh} />}
               {p.isHost && (
                 <span className="rounded bg-zinc-200 px-1.5 text-[10px] font-semibold uppercase dark:bg-zinc-800">

@@ -13,7 +13,7 @@ export const EMPTY_BOARD = ".........";
  * page polls /state, which refreshes the timer (see PRESENCE_TOUCH_MS), so a room only closes
  * once nobody has it open.
  */
-export const ROOM_IDLE_MINUTES = 2;
+export const ROOM_IDLE_MINUTES = 10;
 /** A game in progress that nobody has open is closed after this long. */
 export const PLAYING_IDLE_MINUTES = 30;
 /** /state refreshes last_activity_at at most this often, to keep DB writes low. */

@@ -21,7 +21,7 @@ Next.js 16 (App Router), Supabase (Postgres + Realtime Broadcast), deploy pe Ver
   Când pleacă ultimul, camera se închide.
 - **Kick:** host-ul poate scoate pe oricine. Nu e ban, parola camerei e protecția reală.
 - **Lista de camere:** în „Intră în cameră” vezi camerele care mai au loc, cu „Joacă” (loc liber) sau „Privește”.
-- **Închidere automată:** o cameră care așteaptă sau e între runde se închide după 2 minute în care nimeni nu o mai are
+- **Închidere automată:** o cameră care așteaptă sau e între runde se închide după 10 minute în care nimeni nu o mai are
   deschisă. O rundă în desfășurare se închide după 30 de minute fără nimeni.
 - **Sunete:** un semnal când vine tura ta și la finalul rundei (se pot opri din Setări).
 
