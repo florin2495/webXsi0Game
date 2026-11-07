@@ -1,6 +1,7 @@
 import "server-only";
 import { notifyRoom } from "./broadcast";
-import { db, type RoomRow } from "./db";
+import { isKickExpired, KICK_ENFORCE_EXTRA_MS, KICK_GRACE_MS } from "@/lib/kick";
+import { db, ROOM_COLUMNS, type RoomRow } from "./db";
 import { addWin, listPlayers, roleOf, settleSeats } from "./room";
 
 /**
@@ -57,4 +58,38 @@ export async function removePlayer(room: RoomRow, playerId: string, reason: stri
 
   await notifyRoom(room.id, reason);
   return { roomClosed: false };
+}
+
+/**
+ * Lazy enforcement of pending kicks: removes every player of the room whose grace period (plus network
+ * grace) is over. Each removal is claimed atomically (clear kick_requested_at where it still has the value
+ * we read), so of several concurrent requests only one runs removePlayer. Returns true if anyone was removed
+ * (the caller must then re-read the room).
+ */
+export async function enforceExpiredKicks(room: RoomRow): Promise<boolean> {
+  const cutoff = new Date(Date.now() - (KICK_GRACE_MS + KICK_ENFORCE_EXTRA_MS)).toISOString();
+  const { data, error } = await db()
+    .from("xand0_players")
+    .select("id, kick_requested_at")
+    .eq("room_id", room.id)
+    .lt("kick_requested_at", cutoff);
+  if (error) throw error;
+  let removed = false;
+  for (const row of (data ?? []) as { id: string; kick_requested_at: string }[]) {
+    if (!isKickExpired(row.kick_requested_at)) continue;
+    const { data: claimed, error: claimError } = await db()
+      .from("xand0_players")
+      .update({ kick_requested_at: null })
+      .eq("id", row.id)
+      .eq("kick_requested_at", row.kick_requested_at)
+      .select("id");
+    if (claimError) throw claimError;
+    if (!claimed || claimed.length === 0) continue; // someone else claimed it (or it was ignored)
+    const { data: fresh, error: roomError } = await db().from("xand0_rooms").select(ROOM_COLUMNS).eq("id", room.id).maybeSingle();
+    if (roomError) throw roomError;
+    if (!fresh) return true; // room already closed
+    await removePlayer(fresh as RoomRow, row.id, "player_kicked");
+    removed = true;
+  }
+  return removed;
 }

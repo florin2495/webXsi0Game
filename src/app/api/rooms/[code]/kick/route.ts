@@ -1,7 +1,8 @@
 import { db } from "@/lib/server/db";
 import { fail, handle, readJson } from "@/lib/server/http";
+import { notifyRoom } from "@/lib/server/broadcast";
 import { removePlayer } from "@/lib/server/membership";
-import { requireHost, requireMember } from "@/lib/server/room";
+import { requireHost, requireMember, roleOf } from "@/lib/server/room";
 
 // POST /api/rooms/[code]/kick  { playerId } - host removes another player (any status).
 // Not a ban: identity is a browser token, so a kicked player could rejoin a lobby under a
@@ -24,6 +25,19 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/ki
       .maybeSingle();
     if (error && error.code !== "22P02") throw error; // 22P02 = malformed uuid
     if (!target) fail(404, "Jucătorul nu mai e în cameră.");
+
+    // A seated player in a running round gets 10 s to press "Ignoră"; spectators (and any other
+    // status) are removed at once, as before. A second kick on a pending player is a no-op.
+    if (room.status === "playing" && roleOf(room, targetId) !== "spectator") {
+      const { error: pendingError } = await db()
+        .from("xand0_players")
+        .update({ kick_requested_at: new Date().toISOString() })
+        .eq("id", targetId)
+        .is("kick_requested_at", null);
+      if (pendingError) throw pendingError;
+      await notifyRoom(room.id, "kick_pending");
+      return { ok: true, pending: true };
+    }
 
     await removePlayer(room, targetId, "player_kicked");
     return { ok: true };

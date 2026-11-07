@@ -43,8 +43,10 @@ create table if not exists public.xand0_players (
   token_hash text not null unique,
   is_host    boolean not null default false,
   wins       integer not null default 0 check (wins >= 0),
-  joined_at  timestamptz not null default now()
+  joined_at  timestamptz not null default now(),
+  kick_requested_at timestamptz                            -- pending kick (host kicked mid-round); null = none
 );
+alter table public.xand0_players add column if not exists kick_requested_at timestamptz;
 create unique index if not exists xand0_players_room_nickname_uq on public.xand0_players (room_id, lower(nickname));
 create index if not exists xand0_players_room_idx on public.xand0_players (room_id);
 

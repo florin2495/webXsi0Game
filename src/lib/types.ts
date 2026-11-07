@@ -9,6 +9,8 @@ export interface PublicPlayer {
   isHost: boolean;
   role: Role;
   wins: number;
+  /** Ms left of a pending kick (host kicked this player mid-round), null when none. */
+  kickRemainingMs: number | null;
 }
 
 /** What GET /api/rooms/[code]/state returns to a member. Nothing in it is secret. */

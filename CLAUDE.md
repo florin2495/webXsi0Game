@@ -18,6 +18,7 @@ Migrations are run by hand in the Supabase SQL editor. **Update this table whene
 | Migration | Applied to the live DB | Notes |
 | --- | --- | --- |
 | `supabase/schema.sql` (initial) | yes (2026-11-06, verified: service key reads, anon gets 42501) | `xand0_rooms`, `xand0_players` |
+| `supabase/migrations/001_pending_kick.sql` | **not yet applied** | `xand0_players.kick_requested_at timestamptz`; the code reads it everywhere (PLAYER_COLUMNS), so the app errors until it is applied. Run it BEFORE deploying. |
 
 Rules: new migration = new numbered file in `supabase/migrations/`, additive when possible, also folded into
 `supabase/schema.sql`. Verify by effect with the service key from `.env.local`. Never print or commit the keys.

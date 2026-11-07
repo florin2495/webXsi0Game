@@ -8,10 +8,12 @@ import {
   ROOM_IDLE_MINUTES,
   turnOf,
 } from "@/lib/game";
+import { kickRemainingMs } from "@/lib/kick";
 import type { PublicPlayer, Role, RoomState } from "@/lib/types";
 import { hashToken } from "./crypto";
 import { db, PLAYER_COLUMNS, ROOM_COLUMNS, type PlayerRow, type RoomRow } from "./db";
 import { fail } from "./http";
+import { enforceExpiredKicks } from "./membership";
 
 const GONE = `Camera nu există sau a fost închisă după ${minutesLabel(ROOM_IDLE_MINUTES)} de inactivitate.`;
 
@@ -64,7 +66,9 @@ export async function touchRoom(roomId: string): Promise<void> {
 export async function requireMember(req: Request, code: string): Promise<{ room: RoomRow; player: PlayerRow }> {
   const token = req.headers.get("x-player-token");
   if (!token || token.length > 200) fail(401, "Nu ești în această cameră.");
-  const room = await getRoomByCode(code);
+  let room = await getRoomByCode(code);
+  // Lazy enforcement of pending kicks (no timers on serverless); may remove the caller -> 401 below.
+  if (await enforceExpiredKicks(room)) room = await getRoomByCode(code);
   const { data, error } = await db()
     .from("xand0_players")
     .select(PLAYER_COLUMNS)
@@ -105,6 +109,16 @@ export async function listPlayers(roomId: string): Promise<PlayerRow[]> {
     .order("joined_at", { ascending: true });
   if (error) throw error;
   return (data ?? []) as PlayerRow[];
+}
+
+/** A new round starts: drop every pending kick in the room. */
+export async function clearPendingKicks(roomId: string): Promise<void> {
+  const { error } = await db()
+    .from("xand0_players")
+    .update({ kick_requested_at: null })
+    .eq("room_id", roomId)
+    .not("kick_requested_at", "is", null);
+  if (error) throw error;
 }
 
 /** Adds 1 to a player's win count (only one request can finish a round, see the move route). */
@@ -151,18 +165,23 @@ export async function settleSeats(roomId: string): Promise<void> {
       .eq("version", room.version)
       .select("id");
     if (error) throw error;
-    if (data && data.length > 0) return;
+    if (data && data.length > 0) {
+      if (start) await clearPendingKicks(roomId);
+      return;
+    }
   }
 }
 
 export async function buildState(room: RoomRow, me: PlayerRow): Promise<RoomState> {
   const players = await listPlayers(room.id);
+  const now = Date.now();
   const toPublic = (p: PlayerRow): PublicPlayer => ({
     id: p.id,
     nickname: p.nickname,
     isHost: p.id === room.host_player_id,
     role: roleOf(room, p.id),
     wins: p.wins,
+    kickRemainingMs: kickRemainingMs(p.kick_requested_at, now),
   });
   const rank = (p: PublicPlayer) => (p.role === "X" ? 0 : p.role === "O" ? 1 : 2);
   // Array.prototype.sort is stable, so spectators keep their join order.

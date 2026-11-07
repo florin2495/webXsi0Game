@@ -18,6 +18,7 @@ import { minutesLabel, NICKNAME_MAX, ROOM_IDLE_MINUTES } from "@/lib/game";
 import type { RoomState } from "@/lib/types";
 import { FeedbackButton } from "./FeedbackButton";
 import { Game } from "./Game";
+import { KickModal } from "./KickCountdown";
 import { SettingsPanel } from "./SettingsPanel";
 import { Button, Card, ErrorText, Field } from "./ui";
 
@@ -137,6 +138,9 @@ function Room({ code, token }: { code: string; token: string }) {
       <Game state={state} token={token} refresh={refresh} />
       <SettingsPanel />
       <LeaveButton state={state} token={token} />
+      {state.me.kickRemainingMs !== null && (
+        <KickModal ms={state.me.kickRemainingMs} code={state.room.code} token={token} refresh={refresh} />
+      )}
     </main>
   );
 }

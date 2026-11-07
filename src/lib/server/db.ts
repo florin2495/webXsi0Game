@@ -48,6 +48,8 @@ export interface PlayerRow {
   is_host: boolean;
   wins: number;
   joined_at: string;
+  /** Set when the host kicked this player during a running round; they have KICK_GRACE_MS to ignore it. */
+  kick_requested_at: string | null;
 }
 
-export const PLAYER_COLUMNS = "id, room_id, nickname, is_host, wins, joined_at";
+export const PLAYER_COLUMNS = "id, room_id, nickname, is_host, wins, joined_at, kick_requested_at";

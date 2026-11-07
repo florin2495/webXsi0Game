@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api } from "@/lib/client/api";
 import { MAX_MEMBERS } from "@/lib/game";
 import type { RoomState } from "@/lib/types";
+import { KickBadge } from "./KickCountdown";
 import { Card, ErrorText } from "./ui";
 
 /** Everyone in the room with their role. The host gets a "Scoate" (kick) button next to the others. */
@@ -14,7 +15,7 @@ export function PlayerList({ state, token, refresh }: { state: RoomState; token:
   const [error, setError] = useState("");
 
   async function kick(id: string, nickname: string, seated: boolean) {
-    const midGame = seated && room.status === "playing" ? " Runda în curs o câștigă adversarul lui." : "";
+    const midGame = seated && room.status === "playing" ? " Va avea 10 s să refuze; altfel runda în curs o câștigă adversarul lui." : "";
     if (!window.confirm(`Scoți pe ${nickname} din cameră?${midGame}`)) return;
     setBusy(id);
     setError("");
@@ -45,6 +46,7 @@ export function PlayerList({ state, token, refresh }: { state: RoomState; token:
                 {p.nickname}
                 {p.id === me.id && <span className="text-zinc-500"> (tu)</span>}
               </span>
+              {p.kickRemainingMs !== null && p.id !== me.id && <KickBadge ms={p.kickRemainingMs} refresh={refresh} />}
               {p.isHost && (
                 <span className="rounded bg-zinc-200 px-1.5 text-[10px] font-semibold uppercase dark:bg-zinc-800">
                   host
