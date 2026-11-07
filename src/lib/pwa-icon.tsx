@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-// Opaque icon: indigo background, white X and amber 0, drawn with shapes only.
+// Opaque icon: pink background, white X and amber 0, drawn with shapes only.
 // `scale` shrinks the artwork (maskable icons keep it inside the central 80%).
 export function renderIcon(size: number, scale = 1) {
   const art = size * 0.78 * scale; // artwork box
@@ -25,7 +25,7 @@ export function renderIcon(size: number, scale = 1) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#4f46e5",
+          background: "#db2777",
         }}
       >
         <div style={{ display: "flex", width: art, height: slot }}>
