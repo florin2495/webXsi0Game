@@ -2,6 +2,7 @@ import "server-only";
 import { notifyRoom } from "./broadcast";
 import { isKickExpired, KICK_ENFORCE_EXTRA_MS, KICK_GRACE_MS } from "@/lib/kick";
 import { db, ROOM_COLUMNS, type RoomRow } from "./db";
+import { reportRound } from "./leaderboard";
 import { addWin, listPlayers, roleOf, settleSeats } from "./room";
 
 /**
@@ -14,7 +15,8 @@ import { addWin, listPlayers, roleOf, settleSeats } from "./room";
  */
 export async function removePlayer(room: RoomRow, playerId: string, reason: string): Promise<{ roomClosed: boolean }> {
   const now = new Date().toISOString();
-  const remaining = (await listPlayers(room.id)).filter((p) => p.id !== playerId);
+  const all = await listPlayers(room.id);
+  const remaining = all.filter((p) => p.id !== playerId);
 
   if (remaining.length === 0) {
     const { error } = await db().from("xand0_rooms").delete().eq("id", room.id);
@@ -45,6 +47,10 @@ export async function removePlayer(room: RoomRow, playerId: string, reason: stri
   const { error: roomError } = await db().from("xand0_rooms").update(update).eq("id", room.id);
   if (roomError) throw roomError;
   await addWin(forfeitWinnerId);
+  if (forfeitWinnerId) {
+    const seated = all.filter((p) => p.id === room.x_player_id || p.id === room.o_player_id);
+    await reportRound(room.code, room.round, seated.map((p) => ({ nickname: p.nickname, won: p.id === forfeitWinnerId })));
+  }
 
   if (newHostId && newHostId !== room.host_player_id) {
     const { error } = await db().from("xand0_players").update({ is_host: true }).eq("id", newHostId);
