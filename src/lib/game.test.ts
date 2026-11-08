@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { applyMove, EMPTY_BOARD, fillSeats, isBoard, isRoomExpired, outcome, swapSeats, turnOf } from "./game";
+import {
+  applyMove,
+  EMPTY_BOARD,
+  fillSeats,
+  isBoard,
+  isPermutation,
+  isRoomExpired,
+  MAX_MEMBERS,
+  MAX_SPECTATORS,
+  nextRoundSeats,
+  outcome,
+  starterFromOrder,
+  swapSeats,
+  turnOf,
+  waitingSeats,
+} from "./game";
 
 describe("turnOf", () => {
   it("starts with X and alternates", () => {
@@ -68,5 +83,47 @@ describe("misc", () => {
     expect(isRoomExpired("finished", elevenMinAgo, now)).toBe(true);
     expect(isRoomExpired("playing", elevenMinAgo, now)).toBe(false);
     expect(isRoomExpired("playing", new Date(now - 31 * 60_000), now)).toBe(true);
+  });
+});
+
+describe("spectator queue and starter", () => {
+  const seats = { x: "a", o: "b" };
+
+  it("swaps X and O when nobody picked a starter", () => {
+    expect(nextRoundSeats(seats, null, ["a", "b", "c"], [])).toEqual({ x: "b", o: "a" });
+  });
+
+  it("honors the host-chosen starter", () => {
+    expect(nextRoundSeats(seats, "a", ["a", "b"], [])).toEqual({ x: "a", o: "b" });
+    expect(nextRoundSeats(seats, "zzz", ["a", "b"], [])).toEqual({ x: "b", o: "a" });
+  });
+
+  it("fills a free seat only from the queue, in queue order", () => {
+    // b left; c did not queue, d queued first, e queued second
+    expect(nextRoundSeats({ x: "a", o: null }, null, ["a", "c", "d", "e"], ["d", "e"])).toEqual({ x: "d", o: "a" });
+    expect(nextRoundSeats({ x: "a", o: null }, null, ["a", "c"], [])).toEqual({ x: null, o: "a" });
+  });
+
+  it("waiting rooms seat queued spectators first, then join order, starter becomes X", () => {
+    expect(waitingSeats({ x: "a", o: null }, null, ["a", "c", "d"], ["d"])).toEqual({ x: "a", o: "d" });
+    expect(waitingSeats({ x: "a", o: null }, "d", ["a", "c", "d"], ["d"])).toEqual({ x: "d", o: "a" });
+  });
+
+  it("validates a reorder as a full permutation", () => {
+    expect(isPermutation(["b", "a"], ["a", "b"])).toBe(true);
+    expect(isPermutation(["a"], ["a", "b"])).toBe(false);
+    expect(isPermutation(["a", "a"], ["a", "b"])).toBe(false);
+    expect(isPermutation(["a", "x"], ["a", "b"])).toBe(false);
+    expect(isPermutation("ab", ["a", "b"])).toBe(false);
+  });
+
+  it("the first seated player of the order starts", () => {
+    expect(starterFromOrder(["c", "b", "a"], seats)).toBe("b");
+    expect(starterFromOrder(["c"], seats)).toBeNull();
+  });
+
+  it("allows 16 spectators on top of the 2 players", () => {
+    expect(MAX_SPECTATORS).toBe(16);
+    expect(MAX_MEMBERS).toBe(18);
   });
 });

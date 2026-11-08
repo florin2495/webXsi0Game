@@ -1,5 +1,5 @@
 import { enforceExpiredKicks } from "@/lib/server/membership";
-import { MAX_MEMBERS, NICKNAME_MAX } from "@/lib/game";
+import { MAX_MEMBERS, MAX_SPECTATORS, NICKNAME_MAX } from "@/lib/game";
 import { seatBusyMessage, seatClaim } from "@/lib/reconnect";
 import { notifyRoom } from "@/lib/server/broadcast";
 import { hashDeviceId, hashToken, newPlayerToken, verifyPassword } from "@/lib/server/crypto";
@@ -65,7 +65,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/jo
       return { code: room.code, playerId: existing.id, token };
     }
 
-    if (rows.length >= MAX_MEMBERS) fail(409, `Camera e plină (maxim ${MAX_MEMBERS}: 2 jucători și 2 spectatori).`);
+    if (rows.length >= MAX_MEMBERS) fail(409, `Camera e plină: 2 jucători și maxim ${MAX_SPECTATORS} spectatori.`);
 
     const token = newPlayerToken();
     const { data, error } = await db()

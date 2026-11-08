@@ -9,6 +9,10 @@ export interface PublicPlayer {
   isHost: boolean;
   role: Role;
   wins: number;
+  /** Spectator who asked to play next round ("Intră la runda următoare"). */
+  queued: boolean;
+  /** 1-based place in the queue, null when not queued. */
+  queuePosition: number | null;
   /** Ms left of a pending kick (host kicked this player mid-round), null when none. */
   kickRemainingMs: number | null;
   /** Seen in the last 45 s (see lib/reconnect.ts). False = phone in the background, closed tab, no network. */
@@ -33,6 +37,8 @@ export interface RoomState {
     winner: Winner | null;
     winLine: number[] | null;
     forfeit: boolean;
+    /** Host-chosen X (who starts) of the next round, null = default (the two swap). */
+    starterPlayerId: string | null;
     draws: number;
     /** Changes on every move / seat change; the client uses it to drop stale optimistic moves. */
     version: number;

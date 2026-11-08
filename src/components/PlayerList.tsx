@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { api } from "@/lib/client/api";
-import { MAX_MEMBERS } from "@/lib/game";
+import { MAX_MEMBERS, MAX_SPECTATORS } from "@/lib/game";
 import type { RoomState } from "@/lib/types";
 import { KickBadge } from "./KickCountdown";
 import { Card, ErrorText } from "./ui";
@@ -51,7 +51,7 @@ export function PlayerList({ state, token, refresh }: { state: RoomState; token:
         {players.map((p) => (
           <li key={p.id} className="flex items-center justify-between gap-2 py-2">
             <span className="flex min-w-0 items-center gap-2">
-              <RoleBadge role={p.role} />
+              <RoleBadge role={p.role} queuePosition={p.queuePosition} />
               <span className="truncate">
                 {p.nickname}
                 {p.id === me.id && <span className="text-zinc-500"> (tu)</span>}
@@ -81,7 +81,7 @@ export function PlayerList({ state, token, refresh }: { state: RoomState; token:
       {players.length < MAX_MEMBERS && (
         <p className="mt-1 text-xs text-zinc-500">
           Mai pot intra {MAX_MEMBERS - players.length} cu codul <span className="font-mono font-bold">{room.code}</span>
-          {room.xPlayerId && room.oPlayerId ? ", ca spectatori." : "."}
+          {room.xPlayerId && room.oPlayerId ? `, ca spectatori (maxim ${MAX_SPECTATORS}).` : "."}
         </p>
       )}
       <ErrorText>{error}</ErrorText>
@@ -89,11 +89,11 @@ export function PlayerList({ state, token, refresh }: { state: RoomState; token:
   );
 }
 
-function RoleBadge({ role }: { role: "X" | "O" | "spectator" }) {
+function RoleBadge({ role, queuePosition }: { role: "X" | "O" | "spectator"; queuePosition: number | null }) {
   if (role === "spectator") {
     return (
       <span className="w-20 shrink-0 whitespace-nowrap rounded bg-zinc-100 px-1 text-center text-[10px] font-semibold uppercase text-zinc-500 dark:bg-zinc-900">
-        👀 privește
+        {queuePosition ? `⏳ coada #${queuePosition}` : "👀 privește"}
       </span>
     );
   }

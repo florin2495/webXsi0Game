@@ -1,12 +1,12 @@
 import "server-only";
 import {
   EMPTY_BOARD,
-  fillSeats,
   isRoomExpired,
   minutesLabel,
   PLAYING_IDLE_MINUTES,
   ROOM_IDLE_MINUTES,
   turnOf,
+  waitingSeats,
 } from "@/lib/game";
 import { kickRemainingMs } from "@/lib/kick";
 import { isConnected, LAST_SEEN_TOUCH_MS } from "@/lib/reconnect";
@@ -123,6 +123,22 @@ export async function listPlayers(roomId: string): Promise<PlayerRow[]> {
   return (data ?? []) as PlayerRow[];
 }
 
+/** Queued spectators (ids), first in line first. */
+export function queueOf(players: PlayerRow[]): string[] {
+  return players
+    .filter((p) => p.queued_at !== null)
+    .sort((a, b) => Date.parse(a.queued_at as string) - Date.parse(b.queued_at as string))
+    .map((p) => p.id);
+}
+
+/** Seated players leave the queue. */
+export async function clearQueued(roomId: string, seatedIds: (string | null)[]): Promise<void> {
+  const ids = seatedIds.filter((id): id is string => id !== null);
+  if (ids.length === 0) return;
+  const { error } = await db().from("xand0_players").update({ queued_at: null }).eq("room_id", roomId).in("id", ids).not("queued_at", "is", null);
+  if (error) throw error;
+}
+
 /** A new round starts: drop every pending kick in the room. */
 export async function clearPendingKicks(roomId: string): Promise<void> {
   const { error } = await db()
@@ -156,7 +172,12 @@ export async function settleSeats(roomId: string): Promise<void> {
     const room = await getRoomById(roomId);
     if (!room || room.status !== "waiting") return;
     const players = await listPlayers(roomId);
-    const seats = fillSeats({ x: room.x_player_id, o: room.o_player_id }, players.map((p) => p.id));
+    const seats = waitingSeats(
+      { x: room.x_player_id, o: room.o_player_id },
+      room.starter_player_id,
+      players.map((p) => p.id),
+      queueOf(players),
+    );
     const start = Boolean(seats.x && seats.o);
     if (!start && seats.x === room.x_player_id && seats.o === room.o_player_id) return;
 
@@ -168,7 +189,7 @@ export async function settleSeats(roomId: string): Promise<void> {
       updated_at: now,
       last_activity_at: now,
     };
-    if (start) Object.assign(update, { status: "playing", board: EMPTY_BOARD, winner: null, win_line: null, forfeit: false });
+    if (start) Object.assign(update, { status: "playing", board: EMPTY_BOARD, winner: null, win_line: null, forfeit: false, starter_player_id: null });
 
     const { data, error } = await db()
       .from("xand0_rooms")
@@ -179,6 +200,7 @@ export async function settleSeats(roomId: string): Promise<void> {
     if (error) throw error;
     if (data && data.length > 0) {
       if (start) await clearPendingKicks(roomId);
+      await clearQueued(roomId, [seats.x, seats.o]);
       return;
     }
   }
@@ -187,12 +209,15 @@ export async function settleSeats(roomId: string): Promise<void> {
 export async function buildState(room: RoomRow, me: PlayerRow): Promise<RoomState> {
   const players = await listPlayers(room.id);
   const now = Date.now();
+  const queue = queueOf(players);
   const toPublic = (p: PlayerRow): PublicPlayer => ({
     id: p.id,
     nickname: p.nickname,
     isHost: p.id === room.host_player_id,
     role: roleOf(room, p.id),
     wins: p.wins,
+    queued: p.queued_at !== null && roleOf(room, p.id) === "spectator",
+    queuePosition: p.queued_at !== null && roleOf(room, p.id) === "spectator" ? queue.indexOf(p.id) + 1 : null,
     kickRemainingMs: kickRemainingMs(p.kick_requested_at, now),
     connected: isConnected(p.last_seen_at, now),
   });
@@ -216,6 +241,7 @@ export async function buildState(room: RoomRow, me: PlayerRow): Promise<RoomStat
       winner: room.winner,
       winLine: room.win_line,
       forfeit: room.forfeit,
+      starterPlayerId: room.starter_player_id,
       draws: room.draws,
       version: room.version,
     },

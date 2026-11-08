@@ -85,12 +85,56 @@ export function Game({ state, token, refresh }: Props) {
     }
   }
 
+  async function toggleQueue() {
+    setBusy(true);
+    setError("");
+    try {
+      await api(`/api/rooms/${room.code}/queue`, { token, body: {} });
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Eroare.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Next round's X (who starts): the host's pick, otherwise the current O (the two swap).
+  const nextStarterId = room.starterPlayerId === room.xPlayerId || room.starterPlayerId === room.oPlayerId
+    ? (room.starterPlayerId ?? room.oPlayerId)
+    : room.oPlayerId;
+  const nextStarter = nextStarterId ? byId.get(nextStarterId) : undefined;
+
+  /** Host: hand the first move of the next round to the other seated player (POST /reorder, starter first). */
+  async function changeStarter() {
+    const other = room.xPlayerId && room.oPlayerId ? (nextStarterId === room.xPlayerId ? room.oPlayerId : room.xPlayerId) : null;
+    if (!other) return;
+    setBusy(true);
+    setError("");
+    try {
+      const order = [other, ...players.map((p) => p.id).filter((id) => id !== other)];
+      await api(`/api/rooms/${room.code}/reorder`, { token, body: { order } });
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Eroare.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <Scoreboard x={xPlayer} o={oPlayer} draws={room.draws} turn={room.turn} meId={me.id} />
 
       <Card className={myTurn ? "border-indigo-400 ring-2 ring-indigo-400" : ""}>
-        <StatusLine state={state} x={xPlayer} o={oPlayer} myTurn={myTurn} waitingForServer={Boolean(livePending)} />
+        <StatusLine
+          state={state}
+          x={xPlayer}
+          o={oPlayer}
+          myTurn={myTurn}
+          waitingForServer={Boolean(livePending)}
+          onToggleQueue={() => void toggleQueue()}
+          busy={busy}
+        />
 
         <div
           role="grid"
@@ -138,9 +182,14 @@ export function Game({ state, token, refresh }: Props) {
               <p className="text-center text-sm text-zinc-500">Aștepți ca unul dintre jucători să pornească runda nouă.</p>
             )}
             <p className="text-center text-xs text-zinc-500">
-              La runda nouă jucătorii schimbă X cu 0, deci începe celălalt.
-              {(!room.xPlayerId || !room.oPlayerId) && " Locul liber îl ia primul spectator."}
+              {nextStarter ? `La runda nouă începe ${nextStarter.nickname} (X).` : "La runda nouă jucătorii schimbă X cu 0, deci începe celălalt."}
+              {(!room.xPlayerId || !room.oPlayerId) && " Locul liber îl ia primul spectator care a apăsat „Intră la runda următoare”."}
             </p>
+            {isHost && room.xPlayerId && room.oPlayerId && (
+              <Button variant="secondary" onClick={() => void changeStarter()} disabled={busy}>
+                Schimbă cine începe
+              </Button>
+            )}
           </div>
         )}
         <div className="mt-2">
@@ -204,7 +253,11 @@ function StatusLine({
   o,
   myTurn,
   waitingForServer,
+  onToggleQueue,
+  busy,
 }: {
+  onToggleQueue: () => void;
+  busy: boolean;
   state: RoomState;
   x: PublicPlayer | undefined;
   o: PublicPlayer | undefined;
@@ -244,8 +297,13 @@ function StatusLine({
     <div className="flex flex-col gap-1">
       {spectator && (
         <p className="rounded-lg bg-zinc-100 px-3 py-1.5 text-center text-xs font-semibold text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
-          👀 Ești spectator. Vezi jocul live. Dacă un jucător pleacă, îi iei locul la runda următoare.
+          👀 Ești spectator. Vezi jocul live, fără să poți juca.
         </p>
+      )}
+      {spectator && room.status !== "waiting" && (
+        <Button variant={me.queued ? "secondary" : "primary"} onClick={onToggleQueue} disabled={busy}>
+          {me.queued ? `În coadă (locul ${me.queuePosition}) · renunță` : "Intră la runda următoare"}
+        </Button>
       )}
       <p role="status" aria-live="polite" className={`text-center text-lg font-bold ${tone}`}>
         {text}

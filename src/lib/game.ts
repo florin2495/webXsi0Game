@@ -4,8 +4,10 @@ export type Mark = "X" | "O";
 export type Winner = Mark | "draw";
 
 export const NICKNAME_MAX = 10;
-/** 2 players + 2 spectators. */
-export const MAX_MEMBERS = 4;
+/** Max spectators per room (cross-game contract B). */
+export const MAX_SPECTATORS = 16;
+/** 2 players + MAX_SPECTATORS spectators. */
+export const MAX_MEMBERS = 2 + MAX_SPECTATORS;
 export const EMPTY_BOARD = ".........";
 
 /**
@@ -99,4 +101,47 @@ export function fillSeats(seats: Seats, memberIdsByJoin: string[]): Seats {
 /** Next round: the two players swap marks, so the one who was O now moves first. */
 export function swapSeats(seats: Seats): Seats {
   return { x: seats.o, o: seats.x };
+}
+
+/**
+ * Seats of the next round (new-round route). The previous X and O stay; the host-chosen `starterId`
+ * (reorder) gets X, otherwise they swap so the one who was O starts. Free seats go ONLY to spectators
+ * who asked for it ("Intră la runda următoare"), in queue order. Everyone else keeps watching.
+ */
+export function nextRoundSeats(prev: Seats, starterId: string | null, memberIds: string[], queuedIds: string[]): Seats {
+  const present = new Set(memberIds);
+  const px = prev.x && present.has(prev.x) ? prev.x : null;
+  const po = prev.o && present.has(prev.o) ? prev.o : null;
+  let seats: Seats;
+  if (starterId && (starterId === px || starterId === po)) {
+    seats = { x: starterId, o: starterId === px ? po : px };
+  } else {
+    seats = swapSeats({ x: px, o: po });
+  }
+  const queue = queuedIds.filter((id) => present.has(id) && id !== seats.x && id !== seats.o);
+  return { x: seats.x ?? queue.shift() ?? null, o: seats.o ?? queue.shift() ?? null };
+}
+
+/**
+ * Room still waiting (the round has not started): free seats are taken by queued spectators first (queue
+ * order), then by the others in join order. When both seats fill up, the host-chosen starter becomes X.
+ */
+export function waitingSeats(seats: Seats, starterId: string | null, joinOrderIds: string[], queuedIds: string[]): Seats {
+  const queued = queuedIds.filter((id) => joinOrderIds.includes(id));
+  const ordered = [...queued, ...joinOrderIds.filter((id) => !queued.includes(id))];
+  const filled = fillSeats(seats, ordered);
+  if (filled.x && filled.o && starterId === filled.o) return { x: filled.o, o: filled.x };
+  return filled;
+}
+
+/** A reorder is valid when it lists every member exactly once. */
+export function isPermutation(order: unknown, memberIds: string[]): order is string[] {
+  if (!Array.isArray(order) || order.length !== memberIds.length) return false;
+  const set = new Set(order);
+  return set.size === memberIds.length && memberIds.every((id) => set.has(id));
+}
+
+/** The seated player who comes first in `order` (that one starts the next round), null when nobody is seated. */
+export function starterFromOrder(order: string[], seats: Seats): string | null {
+  return order.find((id) => id === seats.x || id === seats.o) ?? null;
 }

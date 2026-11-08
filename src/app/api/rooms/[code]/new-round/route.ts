@@ -1,11 +1,12 @@
-import { EMPTY_BOARD, fillSeats, swapSeats } from "@/lib/game";
+import { EMPTY_BOARD, nextRoundSeats } from "@/lib/game";
 import { notifyRoom } from "@/lib/server/broadcast";
 import { db } from "@/lib/server/db";
 import { fail, handle } from "@/lib/server/http";
-import { clearPendingKicks, listPlayers, requireMember, requireStatus, roleOf } from "@/lib/server/room";
+import { clearPendingKicks, clearQueued, listPlayers, queueOf, requireMember, requireStatus, roleOf } from "@/lib/server/room";
 
 // POST /api/rooms/[code]/new-round - a seated player or the host, after a finished round.
-// The players swap X and O (so the other one starts); an empty seat goes to the first spectator.
+// The players swap X and O (so the other one starts) unless the host picked the starter (reorder).
+// An empty seat goes to the first spectator in the queue ("Intră la runda următoare"), nobody else.
 export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/new-round">) {
   return handle(async () => {
     const { code } = await ctx.params;
@@ -16,7 +17,12 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/ne
     }
 
     const players = await listPlayers(room.id);
-    const seats = fillSeats(swapSeats({ x: room.x_player_id, o: room.o_player_id }), players.map((p) => p.id));
+    const seats = nextRoundSeats(
+      { x: room.x_player_id, o: room.o_player_id },
+      room.starter_player_id,
+      players.map((p) => p.id),
+      queueOf(players),
+    );
     const now = new Date().toISOString();
 
     const { data, error } = await db()
@@ -27,6 +33,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/ne
         board: EMPTY_BOARD,
         x_player_id: seats.x,
         o_player_id: seats.o,
+        starter_player_id: null,
         winner: null,
         win_line: null,
         forfeit: false,
@@ -42,6 +49,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/ne
     if (!data || data.length === 0) fail(409, "Runda nouă a fost deja pornită.");
 
     await clearPendingKicks(room.id);
+    await clearQueued(room.id, [seats.x, seats.o]);
     await notifyRoom(room.id, "new_round");
     return { ok: true };
   });

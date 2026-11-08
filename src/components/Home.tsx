@@ -182,7 +182,7 @@ export function Home() {
           <li>Câștigă cine are primul 3 semne în linie: rând, coloană sau diagonală.</li>
           <li>Tabla plină fără linie înseamnă remiză.</li>
           <li>La fiecare rundă nouă, jucătorii schimbă X cu 0, deci începe celălalt.</li>
-          <li>Încă 2 prieteni pot intra în cameră ca spectatori, chiar și în timpul jocului.</li>
+          <li>Până la 16 prieteni pot intra ca spectatori, chiar și în timpul jocului, și apasă „Intră la runda următoare” ca să prindă un loc liber.</li>
         </ol>
       </details>
     </main>

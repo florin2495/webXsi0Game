@@ -24,6 +24,7 @@ create table if not exists public.xand0_rooms (
   forfeit          boolean not null default false,         -- true when the round ended because a player left
   draws            integer not null default 0 check (draws >= 0),
   host_player_id   uuid,
+  starter_player_id uuid,                                  -- host-chosen X (starts) of the next round, see migrations/003
   version          integer not null default 0,             -- optimistic concurrency for moves / seats
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now(),
@@ -46,12 +47,15 @@ create table if not exists public.xand0_players (
   joined_at  timestamptz not null default now(),
   kick_requested_at timestamptz,                           -- pending kick (host kicked mid-round); null = none
   last_seen_at timestamptz not null default now(),         -- presence: disconnected after 45 s, see migrations/002
-  device_hash  text                                        -- sha256 of the browser's device id, see migrations/002
+  device_hash  text,                                       -- sha256 of the browser's device id, see migrations/002
+  queued_at    timestamptz                                 -- spectator queued for the next round, see migrations/003
 );
 -- Existing databases: the lines above only apply to a fresh table.
 alter table public.xand0_players add column if not exists kick_requested_at timestamptz;
 alter table public.xand0_players add column if not exists last_seen_at timestamptz not null default now();
 alter table public.xand0_players add column if not exists device_hash text;
+alter table public.xand0_players add column if not exists queued_at timestamptz;
+alter table public.xand0_rooms add column if not exists starter_player_id uuid;
 create unique index if not exists xand0_players_room_nickname_uq on public.xand0_players (room_id, lower(nickname));
 create index if not exists xand0_players_room_idx on public.xand0_players (room_id);
 create index if not exists xand0_players_room_seen_idx on public.xand0_players (room_id, last_seen_at);
@@ -67,6 +71,11 @@ exception when duplicate_object then null; end $$;
 do $$ begin
   alter table public.xand0_rooms
     add constraint xand0_rooms_o_fk foreign key (o_player_id) references public.xand0_players (id) on delete set null;
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  alter table public.xand0_rooms
+    add constraint xand0_rooms_starter_fk foreign key (starter_player_id) references public.xand0_players (id) on delete set null;
 exception when duplicate_object then null; end $$;
 
 -- ---------------------------------------------------------------------------

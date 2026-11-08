@@ -34,12 +34,14 @@ export interface RoomRow {
   forfeit: boolean;
   draws: number;
   host_player_id: string | null;
+  /** Host-chosen X of the next round (reorder). Needs migration 003. */
+  starter_player_id: string | null;
   version: number;
   last_activity_at: string;
 }
 
 export const ROOM_COLUMNS =
-  "id, code, name, password_hash, status, round, board, x_player_id, o_player_id, winner, win_line, forfeit, draws, host_player_id, version, last_activity_at";
+  "id, code, name, password_hash, status, round, board, x_player_id, o_player_id, winner, win_line, forfeit, draws, host_player_id, starter_player_id, version, last_activity_at";
 
 export interface PlayerRow {
   id: string;
@@ -52,7 +54,9 @@ export interface PlayerRow {
   kick_requested_at: string | null;
   /** Presence stamp, touched by requireMember. Needs migration 002_reconnect.sql. */
   last_seen_at: string;
+  /** Spectator waiting for a seat next round. Needs migration 003. */
+  queued_at: string | null;
 }
 
 /** Never add token_hash / device_hash here: these rows feed the public state. */
-export const PLAYER_COLUMNS = "id, room_id, nickname, is_host, wins, joined_at, kick_requested_at, last_seen_at";
+export const PLAYER_COLUMNS = "id, room_id, nickname, is_host, wins, joined_at, kick_requested_at, last_seen_at, queued_at";
