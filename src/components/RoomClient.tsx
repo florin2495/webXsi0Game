@@ -52,17 +52,21 @@ function useRoomState(code: string, token: string) {
   const [state, setState] = useState<RoomState | null>(null);
   const [error, setError] = useState("");
   const [missing, setMissing] = useState(false);
-  const latest = useRef(0);
+  const latest = useRef(0); // id of the last request started
+  const applied = useRef(0); // id of the request (or local patch) the screen shows
 
   const refresh = useCallback(async () => {
     const id = ++latest.current;
     try {
       const s = await api<RoomState>(`/api/rooms/${code}/state`, { token });
-      if (id !== latest.current) return; // a newer request already answered
+      // Show any answer newer than what is on screen. Waiting for the *latest* request instead made
+      // every action wait for a second /state (broadcast refresh + post-action refresh).
+      if (id <= applied.current) return;
+      applied.current = id;
       setState(s);
       setError("");
     } catch (err) {
-      if (id !== latest.current) return;
+      if (id <= applied.current) return;
       if (err instanceof ApiRequestError && err.status === 401) {
         // Another tab may already hold a newer token for this room (seat reclaimed): keep that one.
         if (parseSession(readSessionRaw(code))?.token !== token) return;
@@ -75,6 +79,15 @@ function useRoomState(code: string, token: string) {
       }
     }
   }, [code, token]);
+
+  /**
+   * Applies a change the server just confirmed (e.g. my own move) without a /state round trip.
+   * Answers to /state requests started before it are older than the patch, so they are dropped.
+   */
+  const patch = useCallback((fn: (s: RoomState) => RoomState) => {
+    applied.current = latest.current;
+    setState((s) => (s ? fn(s) : s));
+  }, []);
 
   // Bumping this tears the Realtime channel down and subscribes again (phones kill sockets in the background).
   const [reconnectKey, setReconnectKey] = useState(0);
@@ -135,11 +148,11 @@ function useRoomState(code: string, token: string) {
     };
   }, [roomId, refresh, reconnectKey]);
 
-  return { state, error, missing, refresh };
+  return { state, error, missing, refresh, patch };
 }
 
 function Room({ code, token }: { code: string; token: string }) {
-  const { state, error, missing, refresh } = useRoomState(code, token);
+  const { state, error, missing, refresh, patch } = useRoomState(code, token);
 
   if (missing) {
     return (
@@ -171,7 +184,7 @@ function Room({ code, token }: { code: string; token: string }) {
     <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 py-4">
       <RoomHeader state={state} />
       {error && <ErrorText>Conexiune instabilă: {error}</ErrorText>}
-      <Game state={state} token={token} refresh={refresh} />
+      <Game state={state} token={token} refresh={refresh} patch={patch} />
       <SettingsPanel />
       <LeaveButton state={state} token={token} />
       {state.me.kickRemainingMs !== null && (

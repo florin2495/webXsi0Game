@@ -1,4 +1,4 @@
-import { applyMove, outcome } from "@/lib/game";
+import { applyMove, outcome, turnOf } from "@/lib/game";
 import { notifyRoom } from "@/lib/server/broadcast";
 import { db } from "@/lib/server/db";
 import { fail, handle, readJson } from "@/lib/server/http";
@@ -54,6 +54,17 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/mo
     }
 
     await notifyRoom(room.id, result ? "round_over" : "move");
-    return { ok: true };
+    // Enough for the caller to update its own screen without re-fetching /state.
+    return {
+      ok: true,
+      version: update.version as number,
+      board: move.board,
+      status: result ? "finished" : "playing",
+      turn: result ? null : turnOf(move.board),
+      winner: result?.winner ?? null,
+      winLine: result?.line ?? null,
+      draws: update.draws !== undefined ? (update.draws as number) : room.draws,
+      winnerPlayerId: result && result.winner !== "draw" ? player.id : null,
+    };
   });
 }

@@ -9,6 +9,17 @@ import type { PublicPlayer, RoomState } from "@/lib/types";
 import { OfflineBadge, PlayerList } from "./PlayerList";
 import { Button, Card, ErrorText } from "./ui";
 
+interface MoveResult {
+  version: number;
+  board: string;
+  status: RoomState["room"]["status"];
+  turn: Mark | null;
+  winner: RoomState["room"]["winner"];
+  winLine: number[] | null;
+  draws: number;
+  winnerPlayerId: string | null;
+}
+
 /** Internally the marks are "X" / "O"; in Romanian the game is "X și 0". */
 const show = (m: Mark) => (m === "X" ? "X" : "0");
 const markColor = (m: Mark) => (m === "X" ? "text-indigo-600 dark:text-indigo-400" : "text-rose-600 dark:text-rose-400");
@@ -17,9 +28,11 @@ interface Props {
   state: RoomState;
   token: string;
   refresh: () => Promise<void>;
+  /** Applies a change the server just confirmed, without re-fetching /state. */
+  patch: (fn: (s: RoomState) => RoomState) => void;
 }
 
-export function Game({ state, token, refresh }: Props) {
+export function Game({ state, token, refresh, patch }: Props) {
   const { room, me, players } = state;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -61,8 +74,28 @@ export function Game({ state, token, refresh }: Props) {
     setError("");
     setPending({ cell, version: room.version });
     try {
-      await api(`/api/rooms/${room.code}/move`, { token, body: { cell } });
-      await refresh();
+      const r = await api<MoveResult>(`/api/rooms/${room.code}/move`, { token, body: { cell } });
+      // Apply my move from the response; if the broadcast refresh already brought a newer version, keep that.
+      patch((s) =>
+        s.room.version >= r.version
+          ? s
+          : {
+              ...s,
+              room: {
+                ...s.room,
+                board: r.board,
+                version: r.version,
+                status: r.status,
+                turn: r.turn,
+                winner: r.winner,
+                winLine: r.winLine,
+                draws: r.draws,
+              },
+              players: r.winnerPlayerId
+                ? s.players.map((p) => (p.id === r.winnerPlayerId ? { ...p, wins: p.wins + 1 } : p))
+                : s.players,
+            },
+      );
     } catch (err) {
       setPending(null);
       setError(err instanceof Error ? err.message : "Eroare.");
@@ -123,7 +156,7 @@ export function Game({ state, token, refresh }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      <Scoreboard x={xPlayer} o={oPlayer} draws={room.draws} turn={room.turn} meId={me.id} />
+      <Scoreboard x={xPlayer} o={oPlayer} draws={room.draws} turn={livePending && room.turn ? (room.turn === "X" ? "O" : "X") : room.turn} meId={me.id} />
 
       <Card className={myTurn ? "border-indigo-400 ring-2 ring-indigo-400" : ""}>
         <StatusLine
@@ -157,9 +190,7 @@ export function Game({ state, token, refresh }: Props) {
                   inLine
                     ? "border-amber-400 bg-amber-100 dark:border-amber-500 dark:bg-amber-950"
                     : "border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900"
-                } ${playable ? "cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950" : ""} ${
-                  livePending?.cell === i ? "opacity-60" : ""
-                }`}
+                } ${playable ? "cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950" : ""}`}
               >
                 {mark && <span className={markColor(mark)}>{show(mark)}</span>}
                 {!mark && playable && myMark && (
@@ -276,9 +307,12 @@ function StatusLine({
       ? "Se așteaptă al doilea jucător."
       : `Aștepți un adversar. Trimite-i codul ${room.code} sau apasă „Invită”.`;
   } else if (room.status === "playing" && room.turn) {
-    if (waitingForServer) text = "Se trimite mutarea…";
-    else if (myTurn) {
-      text = `Tura ta: pui ${show(room.turn)}.`;
+    if (waitingForServer) {
+      // My move is already on the board (optimistic): the turn is the opponent's.
+      const next: Mark = room.turn === "X" ? "O" : "X";
+      text = `Tura lui ${nameOf(next)} (${show(next)}).`;
+    } else if (myTurn) {
+      text = "Tura ta";
       tone = "text-indigo-600 dark:text-indigo-400";
     } else text = `Tura lui ${nameOf(room.turn)} (${show(room.turn)}).`;
   } else if (room.winner === "draw") {

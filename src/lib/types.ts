@@ -55,6 +55,8 @@ export interface RoomListItem {
   status: RoomStatus;
   hasPassword: boolean;
   members: number;
+  /** Seated players (X/O), 0-2. */
+  players: number;
   /** True when a newcomer would get a seat instead of watching. */
   seatFree: boolean;
 }

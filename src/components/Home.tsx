@@ -108,7 +108,7 @@ export function Home() {
       </div>
 
       {tab === "join" && (
-        <Card>
+        <Card className="relative">
           <h2 className="mb-3 font-bold">Camere disponibile</h2>
           <RoomList
             selected={picked?.code === code ? code : null}

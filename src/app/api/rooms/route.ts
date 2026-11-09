@@ -1,12 +1,12 @@
 import { connection } from "next/server";
-import { MAX_MEMBERS, NICKNAME_MAX } from "@/lib/game";
+import { NICKNAME_MAX } from "@/lib/game";
 import { hashDeviceId, hashPassword, hashToken, newPlayerToken, newRoomCode } from "@/lib/server/crypto";
 import { db } from "@/lib/server/db";
 import { cleanText, fail, handle, isUniqueViolation, readJson } from "@/lib/server/http";
 import { cleanupExpiredRooms } from "@/lib/server/room";
 import type { RoomListItem, RoomStatus } from "@/lib/types";
 
-// GET /api/rooms - public list of rooms that still have room for someone (player or spectator).
+// GET /api/rooms - public list of all open rooms (lobby and in-game), so newcomers can join or watch.
 export async function GET() {
   await connection(); // always request-time, never prerendered at build
   return handle(async () => {
@@ -20,16 +20,17 @@ export async function GET() {
     const rooms: RoomListItem[] = (data ?? [])
       .map((r) => {
         const members = (r.xand0_players as unknown as { count: number }[])[0]?.count ?? 0;
+        const seated = (r.x_player_id ? 1 : 0) + (r.o_player_id ? 1 : 0);
         return {
           code: r.code as string,
           name: r.name as string,
           status: r.status as RoomStatus,
           hasPassword: r.password_hash !== null,
           members,
+          players: seated,
           seatFree: r.status === "waiting" && (!r.x_player_id || !r.o_player_id),
         };
-      })
-      .filter((r) => r.members < MAX_MEMBERS);
+      });
     return { rooms };
   });
 }
