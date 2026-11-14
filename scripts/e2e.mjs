@@ -182,9 +182,13 @@ async function main() {
   s = (await call(`/api/rooms/${code}/state`, { token: A.token })).data;
   check(s.room.round === 2 && s.room.xPlayerId === B.playerId && s.room.oPlayerId === A.playerId && s.room.status === "playing", "marks swapped: Bob is X");
   const seq = [0, 1, 2, 4, 3, 5, 7, 6, 8];
-  let ok = true;
-  for (let i = 0; i < seq.length; i++) ok = ok && (await move(i % 2 === 0 ? B : A, seq[i])).status === 200;
-  check(ok, "9 moves played");
+  const played = [];
+  for (let i = 0; i < seq.length; i++) {
+    const m = await move(i % 2 === 0 ? B : A, seq[i]);
+    played.push(m.status === 200 ? "200" : `${m.status} ${m.data.error ?? ""}`);
+    if (m.status !== 200) break;
+  }
+  check(played.length === 9 && played.every((x) => x === "200"), `9 moves played (${played.join(", ")})`);
   s = (await call(`/api/rooms/${code}/state`, { token: C.token })).data;
   check(s.room.status === "finished" && s.room.winner === "draw" && s.room.draws === 1 && s.room.winLine === null, "draw counted");
 
