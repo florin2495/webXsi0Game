@@ -31,6 +31,26 @@ export function isRoomExpired(status: string, lastActivityAt: string | Date, now
   return now - new Date(lastActivityAt).getTime() > limit * 60_000;
 }
 
+/**
+ * A room in any status (waiting, playing, finished) is abandoned once its last activity is older than this
+ * AND no member (seated player or spectator) has been seen within it. Swept every time the room list loads
+ * (GET /api/rooms). Open room pages poll /state every 15 s, which keeps both stamps fresher than this.
+ */
+export const ROOM_ABANDONED_MS = 120_000;
+
+export function isRoomAbandoned(
+  lastActivityAt: string | Date,
+  membersLastSeen: (string | Date | null | undefined)[],
+  now = Date.now(),
+): boolean {
+  const recent = (t: string | Date | null | undefined) => {
+    if (t === null || t === undefined) return false;
+    const ms = new Date(t).getTime();
+    return !Number.isNaN(ms) && now - ms <= ROOM_ABANDONED_MS;
+  };
+  return !recent(lastActivityAt) && !membersLastSeen.some(recent);
+}
+
 export const LINES: readonly (readonly [number, number, number])[] = [
   [0, 1, 2],
   [3, 4, 5],

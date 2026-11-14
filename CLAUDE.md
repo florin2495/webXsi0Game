@@ -29,6 +29,14 @@ re-joining with a nickname already in the room reclaims that member (same player
 place and wins, new token) from the same device (`device_hash`) or once it has been unseen for 45 s, also mid-round.
 `/state` exposes only a derived `connected` flag; never add `token_hash` / `device_hash` to PLAYER_COLUMNS.
 
+## Abandoned rooms (120 s)
+`GET /api/rooms` (the room list behind "Intră în cameră") first runs `cleanupAbandonedRooms` (`src/lib/server/room.ts`):
+every room in ANY status (`waiting`, `playing`, `finished`) whose `last_activity_at` is older than `ROOM_ABANDONED_MS`
+(120 s, `game.ts`) and with no member (player or spectator, both `xand0_players` rows) `last_seen_at` within 120 s is
+deleted (players cascade). Open room pages keep both fresh (`/state` polls every 15 s; `last_seen_at` touched every
+10 s, `last_activity_at` every 20 s), so only rooms nobody has open disappear; the room page then shows
+"Camera ... nu mai există" (404). The 10/30-minute idle expiry stays too.
+
 Feedback (`POST /api/feedback`) writes to `hub_feedback` (owned by florin2495/hailataticu-hub, slug `tictactoe`);
 this game must not be deployed before that table exists.
 

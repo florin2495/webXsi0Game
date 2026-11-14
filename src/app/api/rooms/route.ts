@@ -3,14 +3,15 @@ import { NICKNAME_MAX } from "@/lib/game";
 import { hashDeviceId, hashPassword, hashToken, newPlayerToken, newRoomCode } from "@/lib/server/crypto";
 import { db } from "@/lib/server/db";
 import { cleanText, fail, handle, isUniqueViolation, readJson } from "@/lib/server/http";
-import { cleanupExpiredRooms } from "@/lib/server/room";
+import { cleanupAbandonedRooms, cleanupExpiredRooms } from "@/lib/server/room";
 import type { RoomListItem, RoomStatus } from "@/lib/types";
 
 // GET /api/rooms - public list of all open rooms (lobby and in-game), so newcomers can join or watch.
+// Loading the list ("Intră în cameră") first sweeps abandoned rooms: no member seen and no activity for 120 s.
 export async function GET() {
   await connection(); // always request-time, never prerendered at build
   return handle(async () => {
-    await cleanupExpiredRooms();
+    await Promise.all([cleanupExpiredRooms(), cleanupAbandonedRooms()]);
     const { data, error } = await db()
       .from("xand0_rooms")
       .select("code, name, status, password_hash, x_player_id, o_player_id, last_activity_at, xand0_players!xand0_players_room_id_fkey(count)")
