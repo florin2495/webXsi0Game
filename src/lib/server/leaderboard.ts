@@ -9,9 +9,9 @@ export interface RoundResult {
   won: boolean;
 }
 
-/** player_key of the shared hub leaderboard: nickname, trimmed and lowercase (no accounts exist). */
+/** player_key of the shared hub leaderboard: nickname, trimmed, lowercase, at most 40 chars (no accounts exist). */
 export function playerKey(nickname: string): string {
-  return nickname.trim().toLowerCase();
+  return nickname.trim().toLowerCase().slice(0, 40);
 }
 
 /**
