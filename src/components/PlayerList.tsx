@@ -47,9 +47,9 @@ export function PlayerList({ state, token, refresh }: { state: RoomState; token:
           ({players.length}/{MAX_MEMBERS})
         </span>
       </h2>
-      <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+      <ul data-testid="player-list" className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
         {players.map((p) => (
-          <li key={p.id} className="flex items-center justify-between gap-2 py-2">
+          <li key={p.id} data-nickname={p.nickname} data-role={p.role} data-queued={p.queued ? "true" : "false"} className="flex items-center justify-between gap-2 py-2">
             <span className="flex min-w-0 items-center gap-2">
               <RoleBadge role={p.role} queuePosition={p.queuePosition} />
               <span className="truncate">

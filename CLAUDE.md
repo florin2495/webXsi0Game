@@ -3,7 +3,7 @@
 # webXsi0Game - project notes for Claude
 
 ## Accounts and deploy
-- GitHub: personal account **florin2495** only (repo `florin2495/webXsi0Game`, private). Never the work account.
+- GitHub: personal account **florin2495** only (repo `florin2495/webXsi0Game`, public). Never the work account.
   Local git identity is pinned in `.git/config`.
 - The user connects the repo to Vercel by hand. Served at `games.hailatat.icu/tictactoe` via a multi-zones rewrite in the hub (`../000_Startup`) to `web-xsi0-game.vercel.app/tictactoe`; `basePath` is `/tictactoe`, so client `fetch`/share URLs must add `NEXT_PUBLIC_BASE_PATH`.
 - Every push to `main` deploys to production once Vercel is connected. Ask the user before pushing, unless they say to deploy.
@@ -40,8 +40,45 @@ deleted (players cascade). Open room pages keep both fresh (`/state` polls every
 Feedback (`POST /api/feedback`) writes to `hub_feedback` (owned by florin2495/hailataticu-hub, slug `tictactoe`);
 this game must not be deployed before that table exists.
 
-## Testing
-- `npm test` (Vitest, pure rules in `src/lib/game.ts`), `npx tsc --noEmit`, `npx eslint src`, `npx next build`.
-- End-to-end: drive the real API with 4 members (create, join as O, join 2 spectators, a 5th is refused, moves,
-  out-of-turn / spectator move refused, win, draw, new round swaps X/O, leave mid-round = forfeit, spectator takes
-  the free seat next round, kick, host handover) against `npm run dev`. Delete the test rooms afterwards.
+## Testing (GitHub Actions, manual only)
+All checks run in GitHub Actions on the **free tier** (public repo, standard `ubuntu-latest` runners only: never larger,
+macOS or Windows runners, nothing billed), **never locally** (no `npm test`, `tsc`, `eslint`, `next build/dev`, Playwright,
+`node scripts/e2e.mjs`), see `D:\_DEv\CLAUDE.md`. Every workflow is `workflow_dispatch` only (no automatic trigger):
+nothing gates a push, and Vercel deploys `main` regardless. Start one with `gh workflow run <file> --ref main`, then
+`gh run watch <id> --exit-status`, read failures with `gh run view <id> --log-failed`.
+| Workflow | Runs |
+| --- | --- |
+| `.github/workflows/check.yml` "Check code" | `npx next typegen` + `npx tsc --noEmit` (also type-checks `tests/ui` and `playwright.config.ts`), `npx eslint src`, `npx next build`. Every step runs even if an earlier one failed |
+| `.github/workflows/unit-tests.yml` "Unit tests" | `npm test` (Vitest: `src/lib/game.test.ts`, `kick.test.ts`, `reconnect.test.ts`; pure logic, no DB) |
+| `.github/workflows/e2e.yml` "E2E" | `node scripts/e2e.mjs <base_url>` (input, default production `https://games.hailatat.icu/tictactoe`); one run at a time |
+| `.github/workflows/e2e-ui.yml` "E2E UI (Playwright)" | `npx playwright test` (`playwright.config.ts`, tests in `tests/ui/*.e2e.ts`) against `base_url` (`E2E_BASE_URL`, default production), on desktop Chromium and an emulated iPhone 13 (WebKit), 1 worker. Same concurrency group as "E2E". On failure the report (traces, screenshots, videos) is uploaded as the `playwright-report` artifact |
+
+- E2E needs the repo secrets `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (only for the cleanup safety net;
+  the script falls back to `.env.local` when the env is missing). It checks that the deployed client JS contains the
+  `package.json` version of the checked-out ref, so run it on `main` after the Vercel deploy of that version finished.
+- What E2E does (production DB, 4+ members): HTTP checks (home, `room/XXXXXX`, `/_next` assets under `/tictactoe`, version,
+  manifest `start_url`, icons, `web-xsi0-game.vercel.app/tictactoe` serves the same build), then create (password), wrong /
+  missing password, join (the round starts as soon as O sits), nickname checks, 2 spectators, the 18-member cap (2 + 16,
+  the 19th is refused), state consistency and no leaked secrets, 401s, out-of-turn / spectator / invalid / occupied moves,
+  non-host kick, reorder mid-round refused, queue toggle, rejoin from the saved device (old token dead), a win, host
+  reorder (who starts; non-host 403, bad order 400), concurrent new rounds (one wins), marks swapped + a draw, concurrent
+  moves, pending kick + "Ignoră", leave mid-round = forfeit, the queue (seated player refused, order, un-queue) and the
+  queued spectator taking the free seat, kick enforced after 10 s, spectator kick, room isolation, host handover, last one
+  out closes the room. Rooms are named `e2e-test-…` and deleted at the end; it never calls `/api/feedback`.
+- Rounds of rooms named `e2e-test-…` are never reported to the hub leaderboard (`isTestRoom`, `src/lib/server/leaderboard.ts`).
+- What E2E UI does (`tests/ui/`, shared steps in `helpers.ts`; every change must reach the other screens within 5 s
+  without a reload, polling is 15 s, so this checks Realtime):
+  - `game.e2e.ts` (both projects): two browser contexts (= two devices): create, join by link, round 1 every move live,
+    X wins (status + score on both screens), the guest starts round 2 (marks swapped, Bob starts), a draw, both leave.
+  - `spectator.e2e.ts` (desktop Chromium only): a third person joins mid-game = spectator (banner, disabled cells), the
+    players see them, they see every move and the end, queue (players see "coada #1"), a player leaves, the host's new round
+    seats the queued spectator as X, they play, leave mid-round = forfeit.
+  - `mobile.e2e.ts` (iPhone only): no horizontal scroll on home / waiting room / game, every cell and the leave button
+    >= 44 px, a touch tap plays a move the other phone sees live.
+  Rooms are `e2e-test-ui-…`; a leftover is deleted with the service key from the same repo secrets.
+- Playwright files are `*.e2e.ts`, never `*.spec.ts` / `*.test.ts` (Vitest would pick those up).
+- The UI tests find elements by `data-testid`: `home-submit` (Home), `join-submit`, `leave`, `room-status` (with
+  `data-status` waiting/playing/finished) (RoomClient), `board`, `cell-0`..`cell-8` (with `data-mark` "X"/"O"/""),
+  `status-line`, `score-X` / `score-O`, `new-round`, `change-starter`, `queue-toggle`, `spectator-banner` (Game),
+  `player-list` with `li[data-nickname][data-role][data-queued]` (PlayerList). Renaming or removing one breaks `tests/ui`.
+

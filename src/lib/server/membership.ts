@@ -49,7 +49,7 @@ export async function removePlayer(room: RoomRow, playerId: string, reason: stri
   await addWin(forfeitWinnerId);
   if (forfeitWinnerId) {
     const seated = all.filter((p) => p.id === room.x_player_id || p.id === room.o_player_id);
-    await reportRound(room.code, room.round, seated.map((p) => ({ nickname: p.nickname, won: p.id === forfeitWinnerId })));
+    await reportRound(room, seated.map((p) => ({ nickname: p.nickname, won: p.id === forfeitWinnerId })));
   }
 
   if (newHostId && newHostId !== room.host_player_id) {

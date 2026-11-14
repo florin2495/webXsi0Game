@@ -47,8 +47,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/mo
     if (result) {
       const seated = (await listPlayers(room.id)).filter((p) => p.id === room.x_player_id || p.id === room.o_player_id);
       await reportRound(
-        room.code,
-        room.round,
+        room,
         seated.map((p) => ({ nickname: p.nickname, won: result.winner !== "draw" && p.id === player.id })),
       );
     }

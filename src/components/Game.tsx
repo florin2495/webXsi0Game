@@ -172,6 +172,7 @@ export function Game({ state, token, refresh, patch }: Props) {
         <div
           role="grid"
           aria-label="Tabla de joc"
+          data-testid="board"
           className="mx-auto mt-3 grid aspect-square w-full max-w-sm grid-cols-3 gap-2"
         >
           {Array.from(board).map((c, i) => {
@@ -183,6 +184,8 @@ export function Game({ state, token, refresh, patch }: Props) {
                 key={i}
                 type="button"
                 role="gridcell"
+                data-testid={`cell-${i}`}
+                data-mark={mark ?? ""}
                 onClick={() => void play(i)}
                 disabled={!playable}
                 aria-label={`Rândul ${Math.floor(i / 3) + 1}, coloana ${(i % 3) + 1}: ${mark ? show(mark) : "liber"}`}
@@ -206,7 +209,7 @@ export function Game({ state, token, refresh, patch }: Props) {
         {room.status === "finished" && (
           <div className="mt-4 flex flex-col gap-2">
             {myMark !== null || isHost ? (
-              <Button onClick={() => void newRound()} disabled={busy}>
+              <Button onClick={() => void newRound()} disabled={busy} data-testid="new-round">
                 {busy ? "Se pornește…" : "Rundă nouă"}
               </Button>
             ) : (
@@ -217,7 +220,7 @@ export function Game({ state, token, refresh, patch }: Props) {
               {(!room.xPlayerId || !room.oPlayerId) && " Locul liber îl ia primul spectator care a apăsat „Intră la runda următoare”."}
             </p>
             {isHost && room.xPlayerId && room.oPlayerId && (
-              <Button variant="secondary" onClick={() => void changeStarter()} disabled={busy}>
+              <Button variant="secondary" onClick={() => void changeStarter()} disabled={busy} data-testid="change-starter">
                 Schimbă cine începe
               </Button>
             )}
@@ -248,6 +251,7 @@ function Scoreboard({
 }) {
   const side = (mark: Mark, p: PublicPlayer | undefined) => (
     <div
+      data-testid={`score-${mark}`}
       className={`flex min-w-0 flex-1 flex-col items-center rounded-xl border-2 px-2 py-2 ${
         turn === mark
           ? mark === "X"
@@ -330,16 +334,16 @@ function StatusLine({
   return (
     <div className="flex flex-col gap-1">
       {spectator && (
-        <p className="rounded-lg bg-zinc-100 px-3 py-1.5 text-center text-xs font-semibold text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
+        <p data-testid="spectator-banner" className="rounded-lg bg-zinc-100 px-3 py-1.5 text-center text-xs font-semibold text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
           👀 Ești spectator. Vezi jocul live, fără să poți juca.
         </p>
       )}
       {spectator && room.status !== "waiting" && (
-        <Button variant={me.queued ? "secondary" : "primary"} onClick={onToggleQueue} disabled={busy}>
+        <Button variant={me.queued ? "secondary" : "primary"} onClick={onToggleQueue} disabled={busy} data-testid="queue-toggle">
           {me.queued ? `În coadă (locul ${me.queuePosition}) · renunță` : "Intră la runda următoare"}
         </Button>
       )}
-      <p role="status" aria-live="polite" className={`text-center text-lg font-bold ${tone}`}>
+      <p role="status" aria-live="polite" data-testid="status-line" className={`text-center text-lg font-bold ${tone}`}>
         {text}
       </p>
     </div>
