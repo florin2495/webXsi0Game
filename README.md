@@ -9,8 +9,8 @@ Next.js 16 (App Router), Supabase (Postgres + Realtime Broadcast), deploy pe Ver
 1. Creatorul camerei (host-ul) primește **X**. Camera poate avea parolă (opțional).
 2. Al doilea care intră primește **0** și runda pornește imediat. X mută primul.
 3. Câștigă cine face primul 3 în linie (rând, coloană, diagonală). Tabla plină fără linie = remiză.
-4. **Spectatori:** jucătorii 3 și 4 pot intra oricând, și în timpul unei runde. Văd tabla live, scorul și a cui e tura,
-   dar nu pot muta. Camera are maxim 4 oameni.
+4. **Spectatori:** ceilalți pot intra oricând, și în timpul unei runde. Văd tabla live, scorul și a cui e tura,
+   dar nu pot muta.
 5. **Rundă nouă:** după final, oricare dintre jucători (sau host-ul) pornește runda următoare. Jucătorii schimbă X cu 0,
    deci începe celălalt. Scorul (victorii și remize) se păstrează cât stați în cameră.
 
@@ -30,7 +30,7 @@ Next.js 16 (App Router), Supabase (Postgres + Realtime Broadcast), deploy pe Ver
 - Toată logica rulează în Route Handlers (`src/app/api/rooms/...`) cu **service role key**, doar pe server.
 - Tabelele (`xand0_rooms`, `xand0_players`) au **RLS activat și nicio policy**, plus `revoke` pentru `anon`/`authenticated`.
 - Live: după fiecare modificare, serverul trimite un semnal **Supabase Realtime Broadcast** pe topicul `xand0:<uuid>`.
-  Clientul face refetch la `/api/rooms/<cod>/state`. Polling la 15 s ca rezervă.
+  Clientul face refetch la `/api/rooms/<cod>/state`. Polling la 60 s ca rezervă.
 - Mutările sunt protejate de o coloană `version`: din două mutări simultane trece doar una.
 
 Detalii: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Schema: [supabase/schema.sql](supabase/schema.sql).

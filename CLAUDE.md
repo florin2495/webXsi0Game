@@ -20,22 +20,25 @@ Migrations are run by hand in the Supabase SQL editor. **Update this table whene
 | `supabase/schema.sql` (initial) | yes (2026-11-06, verified: service key reads, anon gets 42501) | `xand0_rooms`, `xand0_players` |
 | `supabase/migrations/001_pending_kick.sql` | yes (2026-11-07, verified) | `xand0_players.kick_requested_at timestamptz`; the code reads it everywhere (PLAYER_COLUMNS), so the app errors until it is applied. Run it BEFORE deploying. |
 | `supabase/migrations/002_reconnect.sql` | yes (2026-11-07, verified: service role 200, anon 401) | `xand0_players.last_seen_at`, `device_hash` + index (rejoin the same seat). Read via PLAYER_COLUMNS, so run it BEFORE deploying. |
+| `supabase/migrations/003_spectator_queue_starter.sql` | yes, verified 2026-11-14 by effect: production E2E exercises its columns | `xand0_players.queued_at`, `xand0_rooms.starter_player_id` (spectator queue, host-chosen starter). Read via PLAYER_COLUMNS / ROOM_COLUMNS. |
 
 Rules: new migration = new numbered file in `supabase/migrations/`, additive when possible, also folded into
 `supabase/schema.sql`. Verify by effect with the service key from `.env.local`. Never print or commit the keys.
 
 Rejoin the same seat (`src/lib/reconnect.ts`): every member request stamps `last_seen_at` (≤ every 10 s);
 re-joining with a nickname already in the room reclaims that member (same player id, so same X/O seat or spectator
-place and wins, new token) from the same device (`device_hash`) or once it has been unseen for 45 s, also mid-round.
+place and wins, new token) from the same device (`device_hash`) or once it has been unseen for 301 s (`DISCONNECT_MS`, also the "deconectat"
+badge), also mid-round.
 `/state` exposes only a derived `connected` flag; never add `token_hash` / `device_hash` to PLAYER_COLUMNS.
 
-## Abandoned rooms (120 s)
+## Abandoned rooms (600 s)
 `GET /api/rooms` (the room list behind "Intră în cameră") first runs `cleanupAbandonedRooms` (`src/lib/server/room.ts`):
 every room in ANY status (`waiting`, `playing`, `finished`) whose `last_activity_at` is older than `ROOM_ABANDONED_MS`
-(120 s, `game.ts`) and with no member (player or spectator, both `xand0_players` rows) `last_seen_at` within 120 s is
-deleted (players cascade). Open room pages keep both fresh (`/state` polls every 15 s; `last_seen_at` touched every
+(600 s, `game.ts`) and with no member (player or spectator, both `xand0_players` rows) `last_seen_at` within 600 s is
+deleted (players cascade). Open room pages keep both fresh (`/state` polls every 60 s; `last_seen_at` touched every
 10 s, `last_activity_at` every 20 s), so only rooms nobody has open disappear; the room page then shows
-"Camera ... nu mai există" (404). The 10/30-minute idle expiry stays too.
+"Camera ... nu mai există" (404, neutral text: "Camera nu mai există (a fost închisă după inactivitate).").
+The 10/30-minute idle expiry stays too. Unit test with the DB mocked: `src/lib/server/room.test.ts`.
 
 Feedback (`POST /api/feedback`) writes to `hub_feedback` (owned by florin2495/hailataticu-hub, slug `tictactoe`);
 this game must not be deployed before that table exists.
@@ -49,7 +52,7 @@ nothing gates a push, and Vercel deploys `main` regardless. Start one with `gh w
 | Workflow | Runs |
 | --- | --- |
 | `.github/workflows/check.yml` "Check code" | `npx next typegen` + `npx tsc --noEmit` (also type-checks `tests/ui` and `playwright.config.ts`), `npx eslint src`, `npx next build`. Every step runs even if an earlier one failed |
-| `.github/workflows/unit-tests.yml` "Unit tests" | `npm test` (Vitest: `src/lib/game.test.ts`, `kick.test.ts`, `reconnect.test.ts`; pure logic, no DB) |
+| `.github/workflows/unit-tests.yml` "Unit tests" | `npm test` (Vitest, `vitest.config.ts` resolves `@/`: `src/lib/game.test.ts`, `kick.test.ts`, `reconnect.test.ts`; `src/lib/server/room.test.ts`, `leaderboard.test.ts` with `server-only` and the db module mocked; no real DB) |
 | `.github/workflows/e2e.yml` "E2E" | `node scripts/e2e.mjs <base_url>` (input, default production `https://games.hailatat.icu/tictactoe`); one run at a time |
 | `.github/workflows/e2e-ui.yml` "E2E UI (Playwright)" | `npx playwright test` (`playwright.config.ts`, tests in `tests/ui/*.e2e.ts`) against `base_url` (`E2E_BASE_URL`, default production), on desktop Chromium and an emulated iPhone 13 (WebKit), 1 worker. Same concurrency group as "E2E". On failure the report (traces, screenshots, videos) is uploaded as the `playwright-report` artifact |
 
@@ -65,9 +68,10 @@ nothing gates a push, and Vercel deploys `main` regardless. Start one with `gh w
   moves, pending kick + "Ignoră", leave mid-round = forfeit, the queue (seated player refused, order, un-queue) and the
   queued spectator taking the free seat, kick enforced after 10 s, spectator kick, room isolation, host handover, last one
   out closes the room. Rooms are named `e2e-test-…` and deleted at the end; it never calls `/api/feedback`.
-- Rounds of rooms named `e2e-test-…` are never reported to the hub leaderboard (`isTestRoom`, `src/lib/server/leaderboard.ts`).
+- Rounds of rooms named `e2e-test-…` are never reported to the hub leaderboard (`isTestRoom`, `src/lib/server/leaderboard.ts`, unit-tested;
+  both call sites, the move route and a forfeit in `membership.ts`, go through `reportRound`, which checks it).
 - What E2E UI does (`tests/ui/`, shared steps in `helpers.ts`; every change must reach the other screens within 5 s
-  without a reload, polling is 15 s, so this checks Realtime):
+  without a reload, polling is 60 s, so this checks Realtime):
   - `game.e2e.ts` (both projects): two browser contexts (= two devices): create, join by link, round 1 every move live,
     X wins (status + score on both screens), the guest starts round 2 (marks swapped, Bob starts), a draw, both leave.
   - `spectator.e2e.ts` (desktop Chromium only): a third person joins mid-game = spectator (banner, disabled cells), the

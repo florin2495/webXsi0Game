@@ -1,5 +1,5 @@
 // Scenario 1: two real browsers play live on the deployed site: create, join by link (the round starts on its own),
-// every move reaches the other screen through Realtime (well under the 15 s polling fallback), X wins with a line,
+// every move reaches the other screen through Realtime (well under the 60 s polling fallback), X wins with a line,
 // the score updates on both screens, the guest starts round 2 (marks swapped, the other one starts), a draw,
 // both leave. Runs on every project.
 import { expect, test } from "@playwright/test";

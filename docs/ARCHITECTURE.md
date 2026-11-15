@@ -16,7 +16,7 @@ supabase.channel("xand0:<id>") ◀───────────────�
 1. **Același proiect Supabase ca Bingo**, tabele cu prefix `xand0_` și topic Realtime `xand0:<uuid>`.
    Nimic nu se suprapune cu Bingo.
 2. **Realtime prin Broadcast, nu Postgres Changes** (clientul anonim nu are acces RLS). Evenimentele sunt doar semnale
-   `{ kind }`, clientul face refetch autentificat. Polling la 15 s ca rezervă.
+   `{ kind }`, clientul face refetch autentificat. Polling la 60 s ca rezervă.
 3. **Identitate = token aleator** (32 bytes) în `localStorage`; DB-ul păstrează doar SHA-256.
 4. **Parola camerei** = hash `scrypt` cu salt, verificată cu `timingSafeEqual`.
 5. **Tabla** e un string de 9 caractere (`.`, `X`, `O`) în `xand0_rooms.board`. Tura se deduce din numărul de semne:
@@ -38,7 +38,7 @@ supabase.channel("xand0:<id>") ◀───────────────�
 | --- | --- | --- | --- |
 | GET | `/api/rooms` | oricine | camerele care mai au loc |
 | POST | `/api/rooms` | oricine | creează camera, creatorul ia X |
-| POST | `/[code]/join` | oricine | intră: jucător dacă e loc liber, altfel spectator (max 4) |
+| POST | `/[code]/join` | oricine | intră: jucător dacă e loc liber, altfel spectator |
 | GET | `/[code]/state` | membru | starea camerei (heartbeat de prezență) |
 | POST | `/[code]/move` | jucătorul la tură | `{ cell: 0..8 }` |
 | POST | `/[code]/new-round` | jucător sau host, `finished` | rundă nouă, X ↔ O |

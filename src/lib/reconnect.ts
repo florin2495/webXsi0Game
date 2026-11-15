@@ -3,8 +3,10 @@
 // nickname of an existing seat reclaims it (new token, same player id) when it comes from the same
 // device or when the seat is disconnected. Pure, used by server and client.
 
+import { minutesLabel } from "./game";
+
 /** A seat not seen for this long is shown as "deconectat" and can be reclaimed from another device. */
-export const DISCONNECT_MS = 45_000;
+export const DISCONNECT_MS = 301_000;
 /** requireMember refreshes last_seen_at at most this often, to keep DB writes low. */
 export const LAST_SEEN_TOUCH_MS = 10_000;
 
@@ -39,5 +41,5 @@ export function seatClaim(
 }
 
 export function seatBusyMessage(nickname: string): string {
-  return `${nickname} e conectat acum. Dacă ești tu, închide celălalt tab sau așteaptă ${DISCONNECT_MS / 1000} de secunde.`;
+  return `${nickname} e conectat acum. Dacă ești tu, închide celălalt tab sau așteaptă ${minutesLabel(Math.round(DISCONNECT_MS / 60_000))}.`;
 }

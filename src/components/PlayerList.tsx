@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { api } from "@/lib/client/api";
-import { MAX_MEMBERS, MAX_SPECTATORS } from "@/lib/game";
+import { MAX_MEMBERS } from "@/lib/game";
 import type { RoomState } from "@/lib/types";
 import { KickBadge } from "./KickCountdown";
 import { Card, ErrorText } from "./ui";
 
-/** Shown next to a member not seen for 45 s (phone in the background, closed tab, no network). */
+/** Shown next to a member not seen for 301 s (phone in the background, closed tab, no network). */
 export function OfflineBadge({ connected }: { connected: boolean | undefined }) {
   if (connected !== false) return null;
   return (
@@ -80,8 +80,8 @@ export function PlayerList({ state, token, refresh }: { state: RoomState; token:
       </ul>
       {players.length < MAX_MEMBERS && (
         <p className="mt-1 text-xs text-zinc-500">
-          Mai pot intra {MAX_MEMBERS - players.length} cu codul <span className="font-mono font-bold">{room.code}</span>
-          {room.xPlayerId && room.oPlayerId ? `, ca spectatori (maxim ${MAX_SPECTATORS}).` : "."}
+          Alții pot intra cu codul <span className="font-mono font-bold">{room.code}</span>
+          {room.xPlayerId && room.oPlayerId ? ", ca spectatori." : "."}
         </p>
       )}
       <ErrorText>{error}</ErrorText>

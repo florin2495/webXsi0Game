@@ -15,7 +15,7 @@ export interface PublicPlayer {
   queuePosition: number | null;
   /** Ms left of a pending kick (host kicked this player mid-round), null when none. */
   kickRemainingMs: number | null;
-  /** Seen in the last 45 s (see lib/reconnect.ts). False = phone in the background, closed tab, no network. */
+  /** Seen in the last 301 s (see lib/reconnect.ts). False = phone in the background, closed tab, no network. */
   connected: boolean;
 }
 

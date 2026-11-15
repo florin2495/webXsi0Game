@@ -1,5 +1,5 @@
 import { enforceExpiredKicks } from "@/lib/server/membership";
-import { MAX_MEMBERS, MAX_SPECTATORS, NICKNAME_MAX } from "@/lib/game";
+import { MAX_MEMBERS, NICKNAME_MAX } from "@/lib/game";
 import { seatBusyMessage, seatClaim } from "@/lib/reconnect";
 import { notifyRoom } from "@/lib/server/broadcast";
 import { hashDeviceId, hashToken, newPlayerToken, verifyPassword } from "@/lib/server/crypto";
@@ -19,7 +19,7 @@ interface SeatRow {
 // Works in any status: a free seat makes you a player, otherwise you watch as a spectator.
 // A nickname that is already in the room reclaims that member (same player id, so the same X/O seat or
 // spectator place, wins kept, new token) when the request comes from the same device or the member has
-// been disconnected for 45 s - also mid-round.
+// been disconnected for 301 s - also mid-round.
 export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/join">) {
   return handle(async () => {
     const { code } = await ctx.params;
@@ -65,7 +65,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/jo
       return { code: room.code, playerId: existing.id, token };
     }
 
-    if (rows.length >= MAX_MEMBERS) fail(409, `Camera e plină: 2 jucători și maxim ${MAX_SPECTATORS} spectatori.`);
+    if (rows.length >= MAX_MEMBERS) fail(409, "Camera e plină, nu mai poate intra nimeni.");
 
     const token = newPlayerToken();
     const { data, error } = await db()
